@@ -14,11 +14,49 @@ generator client {
   binaryTargets = "native"
 }
 
-// Define your own datamodels here and run `yarn redwood prisma migrate dev`
-// to create migrations for them and apply to your dev DB.
-// TODO: Please remove the following example:
-model UserExample {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+model User {
+  id                  Int                  @id @default(autoincrement())
+  name                String?
+  email               String   @unique
+  hashedPassword      String   @default("")
+  salt                String   @default("")
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
+  bookings            Booking[]
+  attendances         Attendance[]
+  exceptionRequests   ExceptionRequest[]
+}
+
+model Booking {
+  id        Int      @id @default(autoincrement())
+  title     String
+  notes     String?
+  startTime DateTime
+  endTime   DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  clockIn   DateTime?
+  clockOut  DateTime?
+  duration  String?
+  status    String
+  location  String?
+}
+
+model ExceptionRequest {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  reason    String
+  date      DateTime
+  status    String
+  createdAt DateTime @default(now())
 }
