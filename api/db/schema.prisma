@@ -25,17 +25,31 @@ model User {
   bookings            Booking[]
   attendances         Attendance[]
   exceptionRequests   ExceptionRequest[]
+  overtimeAttendances  OvertimeAttendance[]
+
+  selectedMeetingRoomId Int? 
+  selectedMeetingRoom   MeetingRoom? @relation("UserSelectedMeetingRoom", fields: [selectedMeetingRoomId], references: [id])
 }
 
 model Booking {
-  id        Int      @id @default(autoincrement())
-  title     String
-  notes     String?
-  startTime DateTime
-  endTime   DateTime
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id            Int          @id @default(autoincrement())
+  title         String
+  notes         String?
+  startTime     DateTime
+  endTime       DateTime
+  userId        Int
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meetingRoomId Int?
+  meetingRoom   MeetingRoom? @relation(fields: [meetingRoomId], references: [id])
+  createdAt     DateTime     @default(now())
+}
+
+model MeetingRoom {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  bookings    Booking[]
+  users       User[]    @relation("UserSelectedMeetingRoom")
 }
 
 model Attendance {
@@ -48,6 +62,36 @@ model Attendance {
   duration  String?
   status    String
   location  String?
+  breaks    AttendanceBreak[]
+}
+
+model AttendanceBreak {
+  id           Int        @id @default(autoincrement())
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  attendanceId Int
+  breakIn      DateTime
+  breakOut     DateTime?
+  duration     String?
+}
+
+model OvertimeAttendance {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  clockIn   DateTime?
+  clockOut  DateTime?
+  duration  String?
+  breaks    OvertimeBreak[]
+}
+
+model OvertimeBreak {
+  id           Int        @id @default(autoincrement())
+  overtime     OvertimeAttendance @relation(fields: [overtimeId], references: [id], onDelete: Cascade)
+  overtimeId   Int
+  breakIn      DateTime
+  breakOut     DateTime?
+  duration     String?
 }
 
 model ExceptionRequest {
@@ -59,4 +103,11 @@ model ExceptionRequest {
   date      DateTime
   status    String
   createdAt DateTime @default(now())
+}
+
+model OfficeHours {
+  id        Int      @id @default(autoincrement())
+  startTime String   // e.g. "09:00"
+  endTime   String   // e.g. "18:00"
+  updatedAt DateTime @updatedAt
 }

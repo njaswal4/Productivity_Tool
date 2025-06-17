@@ -7,9 +7,15 @@ export const schema = gql`
     endTime: DateTime!
     userId: Int!
     user: User!
+    meetingRoomId: Int
+    meetingRoom: MeetingRoom
     createdAt: DateTime!
   }
-
+type MeetingRoom {
+  id: Int!
+  name: String!
+  bookings: [Booking!]!
+}
   type Query {
     bookings(userId: Int): [Booking!]! @requireAuth
   }
@@ -20,6 +26,7 @@ export const schema = gql`
     startTime: DateTime!
     endTime: DateTime!
     userId: Int!
+    meetingRoomId: Int
   }
 
   input UpdateBookingInput {
@@ -28,6 +35,7 @@ export const schema = gql`
     startTime: DateTime
     endTime: DateTime
     userId: Int
+    meetingRoomId: Int
   }
 
   type Mutation {

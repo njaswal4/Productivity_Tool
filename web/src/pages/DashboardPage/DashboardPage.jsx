@@ -126,6 +126,81 @@ const DashboardPage = () => {
     },
   })
 
+  // New mutations for break and overtime
+  const CREATE_BREAK_MUTATION = gql`
+    mutation CreateAttendanceBreak($input: CreateAttendanceBreakInput!) {
+      createAttendanceBreak(input: $input) {
+        id
+        breakIn
+        breakOut
+        duration
+      }
+    }
+  `
+
+  const UPDATE_BREAK_MUTATION = gql`
+    mutation UpdateAttendanceBreak($id: Int!, $input: UpdateAttendanceBreakInput!) {
+      updateAttendanceBreak(id: $id, input: $input) {
+        id
+        breakIn
+        breakOut
+        duration
+      }
+    }
+  `
+
+  const CREATE_OVERTIME_MUTATION = gql`
+    mutation CreateOvertimeAttendance($input: CreateOvertimeAttendanceInput!) {
+      createOvertimeAttendance(input: $input) {
+        id
+        clockIn
+        clockOut
+      }
+    }
+  `
+
+  const UPDATE_OVERTIME_MUTATION = gql`
+    mutation UpdateOvertimeAttendance($id: Int!, $input: UpdateOvertimeAttendanceInput!) {
+      updateOvertimeAttendance(id: $id, input: $input) {
+        id
+        clockIn
+        clockOut
+      }
+    }
+  `
+
+  const [createBreakMutation] = useMutation(CREATE_BREAK_MUTATION, {
+    onCompleted: () => {
+      refetch()
+      refetchWeekly()
+    },
+  })
+
+  const [updateBreakMutation] = useMutation(UPDATE_BREAK_MUTATION, {
+    onCompleted: () => {
+      refetch()
+      refetchWeekly()
+      refetchBreaks()
+    },
+    // Add event loader to ensure UI updates after mutation
+    awaitRefetchQueries: true,
+    refetchQueries: ['GetAttendanceBreaks'],
+  })
+
+  const [createOvertimeMutation] = useMutation(CREATE_OVERTIME_MUTATION, {
+    onCompleted: () => {
+      refetch()
+      refetchWeekly()
+    },
+  })
+
+  const [updateOvertimeMutation] = useMutation(UPDATE_OVERTIME_MUTATION, {
+    onCompleted: () => {
+      refetch()
+      refetchWeekly()
+    },
+  })
+
   // Use local date for matching and creating attendance
   const localDateString = getLocalMidnightISOString()
   const localDateISO = `${localDateString}T00:00:00.000Z`
@@ -135,6 +210,87 @@ const DashboardPage = () => {
   const todayAttendance = weeklyAttendances.find(a =>
     a.date.startsWith(utcDateString)
   ) || null
+
+  // Breaks and overtime state
+  const [breaks, setBreaks] = React.useState([])
+  const [overtimeToday, setOvertimeToday] = React.useState(null)
+  const [officeHours, setOfficeHours] = React.useState(null)
+
+  const GET_BREAKS_QUERY = gql`
+    query GetAttendanceBreaks($attendanceId: Int!) {
+      attendanceBreaks(attendanceId: $attendanceId) {
+        id
+        attendanceId
+        breakIn
+        breakOut
+        duration
+      }
+    }
+  `
+
+  const GET_OVERTIME_QUERY = gql`
+    query GetOvertimeAttendance($userId: Int!, $date: DateTime!) {
+      overtimeAttendances {
+        id
+        userId
+        date
+        clockIn
+        clockOut
+      }
+    }
+  `
+
+  const GET_OFFICE_HOURS_QUERY = gql`
+    query GetOfficeHours {
+      officeHourses {
+        id
+        startTime
+        endTime
+        requiredHours
+      }
+    }
+  `
+
+  const { data: breaksData, refetch: refetchBreaks } = useQuery(GET_BREAKS_QUERY, {
+    variables: { attendanceId: todayAttendance?.id },
+    skip: !todayAttendance,
+  })
+
+  const { data: overtimeData, refetch: refetchOvertime } = useQuery(GET_OVERTIME_QUERY, {
+    variables: { userId, date: localDateISO },
+    skip: !userId || !localDateISO,
+  })
+
+  const { data: officeHoursData, refetch: refetchOfficeHours } = useQuery(GET_OFFICE_HOURS_QUERY)
+
+  React.useEffect(() => {
+    const handler = () => {
+      console.log('attendanceBreaksUpdated event received, refetching breaks')
+      refetchBreaks()
+    }
+    window.addEventListener('attendanceBreaksUpdated', handler)
+    if (breaksData?.attendanceBreaks) {
+      console.log('Setting breaks state:', breaksData.attendanceBreaks)
+      setBreaks(breaksData.attendanceBreaks)
+    }
+    return () => {
+      window.removeEventListener('attendanceBreaksUpdated', handler)
+    }
+  }, [breaksData, refetchBreaks])
+
+  React.useEffect(() => {
+    if (overtimeData?.overtimeAttendances && overtimeData.overtimeAttendances.length > 0) {
+      setOvertimeToday(overtimeData.overtimeAttendances[0])
+    } else {
+      setOvertimeToday(null)
+    }
+  }, [overtimeData])
+
+  React.useEffect(() => {
+    if (officeHoursData?.officeHourses && officeHoursData.officeHourses.length > 0) {
+      setOfficeHours(officeHoursData.officeHourses[0])
+    }
+  }, [officeHoursData])
 
   const handleClockIn = () => {
     clockInMutation({
@@ -156,6 +312,91 @@ const DashboardPage = () => {
     })
   }
 
+  // Break handlers
+  const handleBreakIn = () => {
+    if (!todayAttendance) return
+    const now = new Date().toISOString()
+    createBreakMutation({
+      variables: {
+        input: {
+          attendanceId: todayAttendance.id,
+          breakIn: now,
+        },
+      },
+      onCompleted: (data) => {
+        // Optimistically add the new break to local state
+        setBreaks((prev) => [
+          ...prev,
+          {
+            id: data.createAttendanceBreak.id,
+            attendanceId: todayAttendance.id,
+            breakIn: now,
+            breakOut: null,
+            duration: null,
+          },
+        ])
+        // Optionally, refetch after a short delay to sync with backend
+        setTimeout(() => refetchBreaks(), 500)
+      },
+    })
+  }
+
+  const handleBreakOut = async () => {
+    if (!todayAttendance) return
+    // Find latest break without breakOut
+    const latestBreak = breaks.find(b => b.breakIn && !b.breakOut)
+    if (!latestBreak) return
+    try {
+      await updateBreakMutation({
+        variables: {
+          id: latestBreak.id,
+          input: {
+            breakOut: new Date().toISOString(),
+            duration: calculateDuration(latestBreak.breakIn, new Date().toISOString()),
+          },
+        },
+      })
+      // Dispatch event to notify other components to refetch breaks
+      window.dispatchEvent(new CustomEvent('attendanceBreaksUpdated'))
+    } catch (error) {
+      console.error('Error updating break out:', error)
+      alert('Failed to end break. Please try again.')
+    }
+  }
+
+  // Overtime handlers
+  const handleOvertimeClockIn = () => {
+    createOvertimeMutation({
+      variables: {
+        input: {
+          userId,
+          date: localDateISO,
+          clockIn: new Date().toISOString(),
+        },
+      },
+    })
+  }
+
+  const handleOvertimeClockOut = () => {
+    if (!overtimeToday) return
+    updateOvertimeMutation({
+      variables: {
+        id: overtimeToday.id,
+        input: {
+          clockOut: new Date().toISOString(),
+        },
+      },
+    })
+  }
+
+  // Helper to calculate duration string
+  const calculateDuration = (start, end) => {
+    const diffMs = new Date(end) - new Date(start)
+    const hours = Math.floor(diffMs / 1000 / 60 / 60)
+    const minutes = Math.floor((diffMs / 1000 / 60) % 60)
+    return `${hours}h ${minutes}m`
+  }
+
   return (
     <>
       <Metadata title="Dashboard" description="Dashboard page" />
@@ -169,19 +410,26 @@ const DashboardPage = () => {
           </div>
           {/* Right: Attendance Card (1/3 width on large screens) */}
           <div id="attendance-section">
-            <AttendanceCard
-              todayAttendance={todayAttendance}
-              weeklyAttendances={weeklyAttendances}
-              onClockIn={handleClockIn}
-              onClockOut={handleClockOut}
-              loading={loading || clockInLoading || clockOutLoading || weeklyLoading}
-              refetch={refetch} // Pass refetch function
-            />
+          <AttendanceCard
+            todayAttendance={todayAttendance}
+            weeklyAttendances={weeklyAttendances}
+            onClockIn={handleClockIn}
+            onClockOut={handleClockOut}
+            loading={loading || clockInLoading || clockOutLoading || weeklyLoading}
+            refetch={refetch} // Pass refetch function
+            officeHours={officeHours}
+            breaks={breaks}
+            overtimeToday={overtimeToday}
+            onBreakIn={handleBreakIn}
+            onBreakOut={handleBreakOut}
+            onOvertimeClockIn={handleOvertimeClockIn}
+            onOvertimeClockOut={handleOvertimeClockOut}
+          />
           </div>
         </div>
         {/* Attendance Section with ID for scroll */}
         <div>
-          <Attendance userId={userId} userName={userName} refetch={refetch} />
+          <Attendance userId={userId} todayAttendance={todayAttendance} userName={userName} refetch={refetch} />
         </div>
         <div id="bookings-section" className="mt-8">
           <BookingForm userName={userName} refetchBookings={refetch} />

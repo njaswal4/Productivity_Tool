@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Metadata, useQuery, useMutation } from '@redwoodjs/web'
+import MeetingRoomsSection from './MeetingRoomsSection'
 
 const EXCEPTION_REQUESTS_QUERY = gql`
   query ExceptionRequests {
@@ -51,6 +52,25 @@ const UPDATE_EXCEPTION_REQUEST = gql`
   }
 `
 
+const OFFICE_HOURS_QUERY = gql`
+  query OfficeHours {
+    officeHours {
+      id
+      startTime
+      endTime
+    }
+  }
+`
+const UPDATE_OFFICE_HOURS = gql`
+  mutation UpdateOfficeHours($id: Int!, $input: UpdateOfficeHoursInput!) {
+    updateOfficeHours(id: $id, input: $input) {
+      id
+      startTime
+      endTime
+    }
+  }
+`
+
 const AdminPanelPage = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
@@ -58,22 +78,46 @@ const AdminPanelPage = () => {
   const { data, loading, error, refetch } = useQuery(EXCEPTION_REQUESTS_QUERY, {
     fetchPolicy: 'network-only',
   })
-  const [updateExceptionRequest] = useMutation(UPDATE_EXCEPTION_REQUEST, {
-    onCompleted: () => refetch(),
-  })
 
   const { data: allUsersData, loading: allUsersLoading, error: allUsersError, refetch: refetchUsers } = useQuery(
     ALL_USERS_ATTENDANCE_QUERY,
     { fetchPolicy: 'network-only' }
   )
 
-  const [deleteUser] = useMutation(DELETE_USER_MUTATION, {
+  // Add a refetch state for meeting rooms
+  const [meetingRoomsKey, setMeetingRoomsKey] = useState(0)
+
+  // After any meeting room mutation, call this to force MeetingRoomsSection to refetch
+  const handleMeetingRoomsChanged = () => setMeetingRoomsKey((k) => k + 1)
+
+  const [updateExceptionRequest] = useMutation(UPDATE_EXCEPTION_REQUEST, {
     onCompleted: () => {
-      refetchUsers()
-      setShowDeleteDialog(false)
-      setUserToDelete(null)
+      refetch() // Refetch exception requests
+      // After refetch() in onCompleted of your exception request mutation:
+      window.dispatchEvent(new Event('exceptionRequestsUpdated'))
+      window.localStorage.setItem('exceptionRequestsUpdated', Date.now())
     },
   })
+
+  const [deleteUser] = useMutation(DELETE_USER_MUTATION, {
+    onCompleted: () => {
+      refetchUsers() // Refetch users
+    },
+  })
+
+  // Office hours state
+  const { data: officeHoursData, loading: officeHoursLoading, error: officeHoursError, refetch: refetchOfficeHours } = useQuery(OFFICE_HOURS_QUERY)
+  const [updateOfficeHours] = useMutation(UPDATE_OFFICE_HOURS, {
+    onCompleted: () => refetchOfficeHours(),
+  })
+
+  const officeHours = officeHoursData?.officeHours || { startTime: '09:00', endTime: '18:00' }
+  const [startTime, setStartTime] = useState(officeHours.startTime)
+  const [endTime, setEndTime] = useState(officeHours.endTime)
+
+  const handleSave = () => {
+    updateOfficeHours({ variables: { id: officeHours.id, input: { startTime, endTime } } })
+  }
 
   // Pagination states
   const [exceptionPage, setExceptionPage] = useState(1)
@@ -95,15 +139,42 @@ const AdminPanelPage = () => {
     updateExceptionRequest({ variables: { id, input: { status } } })
   }
 
-  // Interval for refreshing data
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetch()
-      refetchUsers()
-    }, 10000) // Refresh every 10 seconds
+  // Type color mapping
+  const typeColors = {
+    'Late Arrival': 'border-orange-400 bg-orange-50',
+    'Early Departure': 'border-yellow-400 bg-yellow-50',
+    'Remote Work': 'border-teal-400 bg-teal-50',
+    'Missed Clock In/Out': 'border-blue-400 bg-blue-50',
+    Other: 'border-gray-200 bg-gray-50',
+    'Sick Day': 'border-red-200 bg-red-50',
+    Leave: 'border-indigo-200 bg-indigo-50',
+    Vacation: 'border-green-200 bg-green-50',
+    Training: 'border-orange-200 bg-orange-50',
+  }
 
-    return () => clearInterval(interval) // Cleanup interval on component unmount
-  }, [refetch, refetchUsers])
+  // Filter and sort pending exceptions
+  const pendingExceptions = (data?.exceptionRequests || [])
+    .filter((form) => form.status === 'Pending')
+    .sort((a, b) => new Date(b.date) - new Date(a.date)) // newest first
+
+  const paginatedPendingExceptions = pendingExceptions.slice(
+    (exceptionPage - 1) * itemsPerPage,
+    exceptionPage * itemsPerPage
+  )
+
+  useEffect(() => {
+    const handler = () => refetch()
+    window.addEventListener('exceptionRequestsChanged', handler)
+    // For cross-tab support:
+    const storageHandler = (e) => {
+      if (e.key === 'exceptionRequestsChanged') refetch()
+    }
+    window.addEventListener('storage', storageHandler)
+    return () => {
+      window.removeEventListener('exceptionRequestsChanged', handler)
+      window.removeEventListener('storage', storageHandler)
+    }
+  }, [refetch])
 
   return (
     <>
@@ -111,7 +182,7 @@ const AdminPanelPage = () => {
 
       {/* Delete User Dialog */}
       {showDeleteDialog && userToDelete && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+        <div className="fixed inset-0 flex items-center justify-center  bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full">
             <h3 className="text-lg font-bold mb-4">Delete User</h3>
             <p className="mb-6">
@@ -139,10 +210,9 @@ const AdminPanelPage = () => {
 
       <div className="max-w-7xl mx-auto mt-8 px-4">
         <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">Admin Panel</h1>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Manage Users Section */}
-          <div className="bg-gray-50 rounded-lg shadow-lg p-6">
+          <div className="bg-gray-50 border-2 shadow-black shadow-lg rounded-lg  p-6">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800">Manage Users</h2>
             {allUsersLoading ? (
               <div className="text-gray-500">Loading...</div>
@@ -196,21 +266,23 @@ const AdminPanelPage = () => {
           </div>
 
           {/* Exception Requests Section */}
-          <div className="bg-gray-50 rounded-lg shadow-lg p-6">
+          <div className="bg-gray-50 rounded-lg border-2 shadow-black shadow-lg  p-6">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800">Pending Exception Requests</h2>
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : error ? (
               <div className="text-red-500">Error: {error.message}</div>
-            ) : data?.exceptionRequests.length === 0 ? (
+            ) : pendingExceptions.length === 0 ? (
               <div className="text-gray-500">No pending requests.</div>
             ) : (
               <>
                 <div className="space-y-4">
-                  {paginatedExceptions.map((form) => (
+                  {paginatedPendingExceptions.map((form) => (
                     <div
                       key={form.id}
-                      className="flex flex-col bg-white rounded-lg shadow p-4 border border-gray-200"
+                      className={`flex flex-col rounded-lg border-l-4 p-4 shadow transition ${
+                        typeColors[form.type] || typeColors['Other']
+                      }`}
                     >
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-gray-800 font-medium">{form.user?.name || form.userId}</span>
@@ -226,24 +298,28 @@ const AdminPanelPage = () => {
                           {form.status}
                         </span>
                       </div>
+                      <div className="flex items-center gap-1 text-sm italic text-gray-500 mb-1">
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            typeColors[form.type]?.split(' ')[0].replace('border', 'bg') || 'bg-gray-300'
+                          }`}
+                        ></span>
+                        {form.type}
+                      </div>
                       <p className="text-sm text-gray-600">{form.reason}</p>
                       <div className="flex justify-end gap-2 mt-4">
-                        {form.status === 'Pending' && (
-                          <>
-                            <button
-                              className="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition"
-                              onClick={() => handleAction(form.id, 'Approved')}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              className="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition"
-                              onClick={() => handleAction(form.id, 'Rejected')}
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
+                        <button
+                          className="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition"
+                          onClick={() => handleAction(form.id, 'Approved')}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition"
+                          onClick={() => handleAction(form.id, 'Rejected')}
+                        >
+                          Reject
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -258,11 +334,11 @@ const AdminPanelPage = () => {
                     Previous
                   </button>
                   <span className="text-sm text-gray-600">
-                    Page {exceptionPage} of {Math.ceil(data?.exceptionRequests?.length / itemsPerPage)}
+                    Page {exceptionPage} of {Math.ceil(pendingExceptions.length / itemsPerPage)}
                   </span>
                   <button
                     className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-                    disabled={exceptionPage === Math.ceil(data?.exceptionRequests?.length / itemsPerPage)}
+                    disabled={exceptionPage === Math.ceil(pendingExceptions.length / itemsPerPage)}
                     onClick={() => setExceptionPage((prev) => prev + 1)}
                   >
                     Next
@@ -271,6 +347,52 @@ const AdminPanelPage = () => {
               </>
             )}
           </div>
+        </div>
+
+        {/* Office Hours Section */}
+        <div className="mt-8 bg-gray-50 rounded-lg border-2 shadow-black shadow-lg p-6">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-800">Office Hours</h2>
+          {officeHoursLoading ? (
+            <div className="text-gray-500">Loading...</div>
+          ) : officeHoursError ? (
+            <div className="text-red-500">Error: {officeHoursError.message}</div>
+          ) : (
+            <form onSubmit={e => { e.preventDefault(); handleSave() }} className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={e => setStartTime(e.target.value)}
+                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={e => setEndTime(e.target.value)}
+                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                >
+                  Save Office Hours
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Move MeetingRoomsSection outside the conditional and pass a key to force refetch */}
+        <div className="mt-8">
+          <MeetingRoomsSection key={meetingRoomsKey} onChanged={handleMeetingRoomsChanged} />
         </div>
       </div>
     </>

@@ -1,9 +1,6 @@
-import React, { useEffect, useState} from 'react'
-import Calendar from '../Calander/Calander'
-import { navigate } from '@redwoodjs/router'
-import { useQuery, useMutation } from '@redwoodjs/web'
-import gql from 'graphql-tag'
-import AttendanceCard from '../AttendanceCard/AttendanceCard'
+import React, { useEffect, useState, useMemo } from 'react'
+import { useQuery, gql } from '@apollo/client'
+import { navigate, routes } from '@redwoodjs/router'
 
 const ATTENDANCE_QUERY = gql`
   query AttendanceQuery($userId: Int) {
@@ -18,18 +15,7 @@ const ATTENDANCE_QUERY = gql`
   }
 `
 
-const CREATE_ATTENDANCE_MUTATION = gql`
-  mutation CreateAttendanceMutation($input: CreateAttendanceInput!) {
-    createAttendance(input: $input) {
-      id
-      date
-      clockIn
-      clockOut
-      duration
-      status
-    }
-  }
-`
+
 
 const EXCEPTION_REQUESTS_QUERY = gql`
   query GetUserWithExceptions($id: Int!) {
@@ -42,29 +28,27 @@ const EXCEPTION_REQUESTS_QUERY = gql`
         reason
         date
         status
+        createdAt
       }
     }
   }
 `
 
-const Attendance = ({ userId, userName }) => {
+const Attendance = ({ userId }) => {
   const { data, loading, error, refetch } = useQuery(ATTENDANCE_QUERY, {
     variables: { userId },
     fetchPolicy: 'network-only',
     skip: !userId,
   })
 
-  const [createAttendance] = useMutation(CREATE_ATTENDANCE_MUTATION, {
-    onCompleted: () => {
-      refetch() // Refetch attendance data after mutation completes
-    },
-  })
-
-  const { data: exceptionData, loading: exceptionLoading, error: exceptionError, refetch: refetchExceptions } = useQuery(EXCEPTION_REQUESTS_QUERY, {
-    variables: { id: userId },
-    skip: !userId,
-    fetchPolicy: 'network-only',
-  })
+  const { data: exceptionData, loading: exceptionLoading, error: exceptionError, refetch: refetchExceptions } = useQuery(
+    EXCEPTION_REQUESTS_QUERY,
+    {
+      variables: { id: userId },
+      skip: !userId,
+      fetchPolicy: 'network-only',
+    }
+  )
 
   const [exceptionRequests, setExceptionRequests] = useState([])
   const [attendances, setAttendances] = useState([])
@@ -74,42 +58,48 @@ const Attendance = ({ userId, userName }) => {
   const [exceptionPage, setExceptionPage] = useState(1)
   const itemsPerPage = 5
 
-  // Update state when data changes
+  // Memoized paginated data
+  const paginatedAttendances = useMemo(() => {
+    return attendances.slice(
+      (attendancePage -1) * itemsPerPage,
+      attendancePage * itemsPerPage
+    )
+  }, [attendances, attendancePage, itemsPerPage])
+
+  const paginatedExceptions = useMemo(() => {
+    const sorted = [...exceptionRequests].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    )
+    return sorted.slice(
+      (exceptionPage - 1) * itemsPerPage,
+      exceptionPage * itemsPerPage
+    )
+  }, [exceptionRequests, exceptionPage, itemsPerPage])
+
+  // Update state when attendance data changes
   useEffect(() => {
-    if (data?.attendances) setAttendances(data.attendances)
+    if (data?.attendances && JSON.stringify(data.attendances) !== JSON.stringify(attendances)) {
+      setAttendances(data.attendances)
+    }
   }, [data])
 
+  // Update state when exception data changes
   useEffect(() => {
     if (exceptionData?.user?.exceptionRequests) {
-      setExceptionRequests(exceptionData.user.exceptionRequests)
+      const sorted = [...exceptionData.user.exceptionRequests].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      )
+      setExceptionRequests(sorted)
     }
   }, [exceptionData])
 
-  // Polling for attendance updates
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const result = await refetch()
-      if (result.data?.attendances) {
-        if (JSON.stringify(result.data.attendances) !== JSON.stringify(attendances)) {
-          setAttendances(result.data.attendances)
-        }
-      }
-    }, 10000) // Poll every 10 seconds
-    return () => clearInterval(interval)
-  }, [refetch, attendances])
-
-  // Polling for exception updates
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const result = await refetchExceptions()
-      if (result.data?.user?.exceptionRequests) {
-        if (JSON.stringify(result.data.user.exceptionRequests) !== JSON.stringify(exceptionRequests)) {
-          setExceptionRequests(result.data.user.exceptionRequests)
-        }
-      }
-    }, 10000) // Poll every 10 seconds
-    return () => clearInterval(interval)
-  }, [refetchExceptions, exceptionRequests])
+  // Refresh exception section
+  const handleRefresh = async () => {
+    const result = await refetchExceptions()
+    if (result.data?.user?.exceptionRequests) {
+      setExceptionRequests(result.data.user.exceptionRequests)
+    }
+  }
 
   // Helper to calculate duration if not provided
   const getDuration = (clockIn, clockOut) => {
@@ -120,15 +110,38 @@ const Attendance = ({ userId, userName }) => {
     return `${hours}h ${minutes}m`
   }
 
-  // Paginated data
-  const paginatedAttendances = attendances.slice(
-    (attendancePage - 1) * itemsPerPage,
-    attendancePage * itemsPerPage
-  )
-  const paginatedExceptions = exceptionRequests.slice(
-    (exceptionPage - 1) * itemsPerPage,
-    exceptionPage * itemsPerPage
-  )
+  // Listen for attendance updates (from AttendanceCard)
+  useEffect(() => {
+    const handler = () => {
+      refetch().then(result => {
+        console.log('Attendance data after refetch:', result.data)
+      })
+    }
+    window.addEventListener('attendanceUpdated', handler)
+    // For cross-tab support:
+    const storageHandler = (e) => {
+      if (e.key === 'attendanceUpdated') refetch()
+    }
+    window.addEventListener('storage', storageHandler)
+    return () => {
+      window.removeEventListener('attendanceUpdated', handler)
+      window.removeEventListener('storage', storageHandler)
+    }
+  }, [refetch])
+
+  // Listen for exception requests updates (from admin panel)
+  useEffect(() => {
+    const handler = () => refetchExceptions()
+    window.addEventListener('exceptionRequestsUpdated', handler)
+    const storageHandler = (e) => {
+      if (e.key === 'exceptionRequestsUpdated') refetchExceptions()
+    }
+    window.addEventListener('storage', storageHandler)
+    return () => {
+      window.removeEventListener('exceptionRequestsUpdated', handler)
+      window.removeEventListener('storage', storageHandler)
+    }
+  }, [refetchExceptions])
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
@@ -260,7 +273,12 @@ const Attendance = ({ userId, userName }) => {
         >
           Submit New Exception
         </button>
-        {/* Exception Requests List */}
+        <button
+          className="self-end px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition mb-4"
+          onClick={handleRefresh}
+        >
+          Refresh
+        </button>
         <div className="space-y-3 mb-6">
           {exceptionLoading ? (
             <div>Loading...</div>
@@ -281,8 +299,8 @@ const Attendance = ({ userId, userName }) => {
                   <span className={`text-xs font-semibold px-2 py-1 rounded-full
                     ${ex.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : ''}
                     ${ex.status === 'Approved' ? 'bg-green-100 text-green-700' : ''}
-                    ${ex.status === 'Rejected' ? 'bg-red-100 text-red-700' : ''}
-                  `}>
+                    ${ex.status === 'Rejected' ? 'bg-red-100 text-red-700' : ''}`}
+                  >
                     {ex.status}
                   </span>
                 </div>
@@ -293,7 +311,6 @@ const Attendance = ({ userId, userName }) => {
             ))
           )}
         </div>
-        {/* Pagination Controls */}
         <div className="flex justify-between items-center mt-4">
           <button
             className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"

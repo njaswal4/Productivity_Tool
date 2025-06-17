@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useMutation, useQuery } from '@redwoodjs/web'
 import { useAuth } from 'src/auth'
-import { toast } from '@redwoodjs/web/toast'
+//import { toast } from '@redwoodjs/web/toast'
 import BookingLog from 'src/components/BookingLog/BookingLog'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import { format } from 'date-fns'
 import { FaRegCalendarAlt, FaRegClock } from 'react-icons/fa'
-
+import MeetingRoomSelector from '../BookingForm/MeetingRoomSelector'
 const CREATE_BOOKING = gql`
   mutation CreateBookingMutation($input: CreateBookingInput!) {
     createBooking(input: $input) {
@@ -35,6 +35,7 @@ export const BookingForm = ({ refetchBookings }) => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [createBooking] = useMutation(CREATE_BOOKING)
+  const [selectRoomId, setSelectedRoomId] = useState('')
   const { data: bookingsData, refetch: refetchBookingsData } = useQuery(BOOKINGS_QUERY, {
     variables: { userId: currentUser.id },
   })
@@ -124,6 +125,12 @@ export const BookingForm = ({ refetchBookings }) => {
       return
     }
 
+    if (!selectRoomId) {
+      setError('Please select a meeting room.')
+      setSuccess('')
+      return
+    }
+
     const startTimeString = `${format(selectedDate, 'yyyy-MM-dd')} ${selectedSlots[0].start}`
     const endTimeString = `${format(selectedDate, 'yyyy-MM-dd')} ${selectedSlots[selectedSlots.length - 1].end}`
 
@@ -145,6 +152,7 @@ export const BookingForm = ({ refetchBookings }) => {
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             notes,
+            meetingRoomId: selectRoomId ? Number(selectRoomId) : null, // CORRECT
           },
         },
       })
@@ -156,6 +164,7 @@ export const BookingForm = ({ refetchBookings }) => {
       if (refetchBookings) refetchBookings()
       if (refetchBookingsData) refetchBookingsData()
     } catch (err) {
+      console.error('Error creating booking:', err) // Log the error for debugging
       setError(err.message)
       setSuccess('')
     }
@@ -240,6 +249,13 @@ export const BookingForm = ({ refetchBookings }) => {
 
           {/* Meeting Title and Notes */}
           <div className="col-span-2 flex flex-col gap-4 mt-8">
+            <div className="col-span-2">
+              <MeetingRoomSelector
+                selectedRoomId={selectRoomId}
+              
+                onChange={(roomId) => setSelectedRoomId(roomId)} // Ensure the correct value is passed
+              />
+            </div>
             <input
               type="text"
               placeholder="Meeting Title"
@@ -259,6 +275,7 @@ export const BookingForm = ({ refetchBookings }) => {
             <button
               type="submit"
               className="rw-button rw-button-blue px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition"
+              disabled={!selectRoomId}
             >
               Book Now
             </button>

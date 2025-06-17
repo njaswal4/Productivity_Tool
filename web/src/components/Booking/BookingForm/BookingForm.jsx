@@ -7,8 +7,10 @@ import {
   DatetimeLocalField,
   NumberField,
   Submit,
+  Select,
 } from '@redwoodjs/forms'
 import { FaRegCalendarAlt, FaRegClock } from 'react-icons/fa'
+import { useQuery } from '@redwoodjs/web'
 
 const formatDatetime = (value) => {
   if (value) {
@@ -16,7 +18,18 @@ const formatDatetime = (value) => {
   }
 }
 
+const GET_MEETING_ROOMS = gql`
+  query GetMeetingRooms {
+    meetingRooms {
+      id
+      name
+    }
+  }
+`
+
 const BookingForm = (props) => {
+  const { data, loading, error } = useQuery(GET_MEETING_ROOMS)
+
   const onSubmit = (data) => {
     props.onSave(data, props?.booking?.id)
   }
@@ -141,6 +154,33 @@ const BookingForm = (props) => {
             />
             <FieldError
               name="userId"
+              className="rw-field-error text-red-500 mt-1"
+            />
+
+            <Label
+              name="meetingRoomId"
+              className="rw-label text-gray-700 font-semibold mt-4 mb-2"
+              errorClassName="rw-label rw-label-error"
+            >
+              Select Meeting Room
+            </Label>
+            <Select
+              name="meetingRoomId"
+              defaultValue={props.booking?.meetingRoomId}
+              className="rw-input w-full rounded-lg border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500"
+              errorClassName="rw-input rw-input-error"
+              validation={{ required: true }}
+              disabled={loading}
+            >
+              <option value="">Select a meeting room</option>
+              {data?.meetingRooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.name}
+                </option>
+              ))}
+            </Select>
+            <FieldError
+              name="meetingRoomId"
               className="rw-field-error text-red-500 mt-1"
             />
           </div>

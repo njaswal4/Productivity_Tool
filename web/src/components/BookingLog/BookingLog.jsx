@@ -9,6 +9,10 @@ const BOOKINGS_LOG_QUERY = gql`
       startTime
       endTime
       notes
+      meetingRoom {
+        id
+        name
+      }
       user {
         id
         name
@@ -83,6 +87,7 @@ const BookingLog = () => {
             <tr className="bg-blue-50">
               <th className="px-4 py-2 text-left">Meeting</th>
               <th className="px-4 py-2 text-left">User</th>
+              <th className="px-4 py-2 text-left">Meeting Room</th>
               <th className="px-4 py-2 text-left">Status</th>
               <th className="px-4 py-2 text-left">Start</th>
               <th className="px-4 py-2 text-left">End</th>
@@ -98,6 +103,7 @@ const BookingLog = () => {
                   <td className="px-4 py-2 font-medium">
                     {b.user?.name || b.user?.email || 'Unknown'}
                   </td>
+                  <td className="px-4 py-2">{b.meetingRoom?.name || 'N/A'}</td>
                   <td className="px-4 py-2">
                     <span className={`px-2 py-1 rounded text-xs font-bold ${statusColor(status)}`}>
                       {status}

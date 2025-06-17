@@ -5,12 +5,12 @@ export const bookings = ({ userId }) => {
     return db.booking.findMany({
       where: { userId },
       orderBy: { startTime: 'asc' },
-      include: { user: true },
+      include: { user: true, meetingRoom: true },
     })
   }
   return db.booking.findMany({
     orderBy: { startTime: 'asc' },
-    include: { user: true },
+    include: { user: true, meetingRoom: true },
   })
 }
 
@@ -49,5 +49,8 @@ export const deleteBooking = ({ id }) => {
 export const Booking = {
   user: (_obj, { root }) => {
     return db.booking.findUnique({ where: { id: root?.id } }).user()
+  },
+  meetingRoom: (_obj, { root }) => {
+    return db.booking.findUnique({ where: { id: root?.id } }).meetingRoom()
   },
 }

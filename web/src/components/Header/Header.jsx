@@ -83,7 +83,7 @@ const Header = ({ isAdmin }) => {
       </div>
       <nav className="flex border-t border-gray-200">
         <a
-          href="/dashboard"
+          href="/"
           className="flex-1 px-1 py-3 text-center text-sm font-medium text-primary border-b-2 border-primary"
         >
           <div className="w-5 h-5 mx-auto flex items-center justify-center">

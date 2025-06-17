@@ -9,6 +9,10 @@ const BOOKINGS_QUERY = gql`
       startTime
       endTime
       notes
+      meetingRoom {
+        id
+        name
+      }
     }
   }
 `
@@ -86,6 +90,7 @@ const MeetingList = ({ bookings, onDeleteClick, showDelete, onFinishClick }) => 
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">{b.notes}</p>
+                  <p className="text-sm text-gray-600 mt-1 font-semibold">Meeting Room: {b.meetingRoom?.name || 'N/A'}</p>
                   <div className="mt-3 flex items-center gap-2">
                     <span className={`px-3 py-1 rounded-md text-xs font-bold ${statusColor(status)}`}>
                       {status}

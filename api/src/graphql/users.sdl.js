@@ -6,7 +6,14 @@ export const schema = gql`
     bookings: [Booking]!
     exceptionRequests: [ExceptionRequest!]!
     attendancesInRange(start: DateTime!, end: DateTime!): [Attendance!]!
-     attendances: [Attendance!]!
+    attendances: [Attendance!]!
+    selectedMeetingRoom: MeetingRoom
+  }
+
+  input UpdateUserInput {
+    name: String
+    email: String
+    selectedMeetingRoomId: Int
   }
 
   type Query {
@@ -14,19 +21,14 @@ export const schema = gql`
     user(id: Int!): User @requireAuth
   }
 
-  input CreateUserInput {
-    name: String!
-    email: String!
-  }
-
-  input UpdateUserInput {
-    name: String
-    email: String
-  }
-
   type Mutation {
     createUser(input: CreateUserInput!): User! @requireAuth
     updateUser(id: Int!, input: UpdateUserInput!): User! @requireAuth
     deleteUser(id: Int!): User! @requireAuth
+  }
+
+  input CreateUserInput {
+    name: String!
+    email: String!
   }
 `
