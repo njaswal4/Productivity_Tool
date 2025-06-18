@@ -103,8 +103,12 @@ const FormPage = () => {
       })
       setSuccess(true)
       setTimeout(() => navigate('/'), 1500)
+    window.dispatchEvent(new Event('exceptionRequestsChanged'))
+    window.localStorage.setItem('exceptionRequestsChanged', Date.now())
+
     } catch (error) {
       console.error('Submission failed:', error)
+   
     }
   }
 

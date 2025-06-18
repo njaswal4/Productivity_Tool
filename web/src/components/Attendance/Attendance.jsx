@@ -11,6 +11,11 @@ const ATTENDANCE_QUERY = gql`
       clockOut
       duration
       status
+      breaks {
+        id
+        breakIn
+        breakOut
+      }
     }
   }
 `
@@ -212,9 +217,24 @@ const Attendance = ({ userId }) => {
                             : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                          {record.duration && record.duration !== '-'
-                            ? record.duration
-                            : getDuration(record.clockIn, record.clockOut)}
+                          {/* Office duration only (excluding breaks) */}
+                          {(() => {
+                            const breaks = record.breaks || []
+                            const totalBreakMs = breaks.reduce((sum, b) => {
+                              if (b.breakIn && b.breakOut) {
+                                return sum + (new Date(b.breakOut) - new Date(b.breakIn))
+                              }
+                              return sum
+                            }, 0)
+                            const officeMs = record.clockIn && record.clockOut
+                              ? Math.max(new Date(record.clockOut) - new Date(record.clockIn) - totalBreakMs, 0)
+                              : 0
+                            const h = Math.floor(officeMs / 1000 / 60 / 60)
+                            const m = Math.floor((officeMs / 1000 / 60) % 60)
+                            return record.clockIn && record.clockOut
+                              ? `${h}h ${m}m`
+                              : '-'
+                          })()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span

@@ -237,19 +237,95 @@ const AttendanceCard = ({
           {daysOfWeek.map((day, i) => (
             <div key={day} className="text-xs text-gray-500">{day}</div>
           ))}
-          {attendanceByDay.map((record, i) => (
-            <div
-              key={i}
-              className={`h-8 flex items-center justify-center rounded text-xs border
-                ${record && record.duration
-                  ? 'bg-green-100 text-green-800 border-green-200'
-                  : 'bg-gray-100 text-gray-500 border-gray-200'
-                }`}
-            >
-              {record && (record.duration ||
-                getDuration(record.clockIn, record.clockOut)) || '-'}
+        </div>
+        {/* --- Total Duration row with "T" initial --- */}
+        <div className="flex items-center mb-1">
+          <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-green-700">T</div>
+          <div className="grid grid-cols-7 gap-2 flex-1">
+            {attendanceByDay.map((record, i) => (
+              <div
+                key={i}
+                className={`h-8 flex items-center justify-center rounded text-xs border
+                  ${record && record.duration
+                    ? 'bg-green-100 text-green-800 border-green-200'
+                    : 'bg-gray-100 text-gray-500 border-gray-200'
+                  }`}
+              >
+                {record && (record.duration ||
+                  getDuration(record.clockIn, record.clockOut)) || '-'}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* --- Breaks row with "B" initial --- */}
+        <div className="flex items-center">
+          <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-yellow-700">B</div>
+          <div className="grid grid-cols-7 gap-2 flex-1">
+            {weekDays.map((day, i) => {
+              const dayBreaks = (breaks || []).filter(b => {
+                const recDate = new Date(b.breakIn)
+                recDate.setUTCHours(0, 0, 0, 0)
+                return recDate.getTime() === day.getTime()
+              })
+              const breakMs = dayBreaks.reduce((sum, b) => {
+                if (b.breakIn && b.breakOut) {
+                  return sum + (new Date(b.breakOut) - new Date(b.breakIn))
+                }
+                return sum
+              }, 0)
+              return (
+                <div
+                  key={i}
+                  className={`h-8 flex items-center justify-center rounded text-xs border
+                    ${breakMs > 0
+                      ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                      : 'bg-gray-100 text-gray-400 border-gray-200'
+                    }`}
+                >
+                  {breakMs > 0 ? msToHrsMin(breakMs) : '-'}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        {/* --- Overtime row with "O" initial --- */}
+        <div className="flex items-center">
+          <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-indigo-700">O</div>
+          <div className="grid grid-cols-7 gap-2 flex-1">
+            {weekDays.map((day, i) => {
+              const overtimeRec = (weeklyAttendances || []).find(a => {
+                const recDate = new Date(a.date)
+                recDate.setUTCHours(0, 0, 0, 0)
+                return recDate.getTime() === day.getTime()
+              })
+              const overtimeMs = overtimeRec && overtimeRec.overtimeDurationMs
+                ? overtimeRec.overtimeDurationMs
+                : 0
+              return (
+                <div
+                  key={i}
+                  className={`h-8 flex items-center justify-center rounded text-xs border
+                    ${overtimeMs > 0
+                      ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                      : 'bg-gray-100 text-gray-400 border-gray-200'
+                    }`}
+                >
+                  {overtimeMs > 0 ? msToHrsMin(overtimeMs) : '-'}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        {/* --- Index row for initials --- */}
+        <div className="flex items-center mt-1">
+          <div className="w-6 flex-shrink-0"></div>
+          <div className="grid grid-cols-7 gap-2 flex-1">
+            <div className="col-span-7 text-left text-[11px] text-gray-400">
+              <span className="font-bold text-green-700">T</span> = Total Duration,&nbsp;
+              <span className="font-bold text-yellow-700">B</span> = Breaks,&nbsp;
+              <span className="font-bold text-indigo-700">O</span> = Overtime
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>

@@ -11,6 +11,12 @@ export const schema = gql`
   type Query {
     attendanceBreaks(attendanceId: Int!): [AttendanceBreak!]! @requireAuth
     attendanceBreak(id: Int!): AttendanceBreak @requireAuth
+    # NEW: Fetch all breaks for a user in a date range (for weekly overview)
+    attendanceBreaksForUserInRange(
+      userId: Int!
+      start: DateTime!
+      end: DateTime!
+    ): [AttendanceBreak!]! @requireAuth
   }
 
   input CreateAttendanceBreakInput {

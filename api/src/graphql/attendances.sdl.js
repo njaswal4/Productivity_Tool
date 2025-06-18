@@ -9,6 +9,7 @@ export const schema = gql`
     duration: String
     status: String!
     location: String
+    breaks: [AttendanceBreak!]!
   }
 
   type Query {
@@ -39,8 +40,7 @@ export const schema = gql`
 
   type Mutation {
     createAttendance(input: CreateAttendanceInput!): Attendance! @requireAuth
-    updateAttendance(id: Int!, input: UpdateAttendanceInput!): Attendance!
-      @requireAuth
+    updateAttendance(id: Int!, input: UpdateAttendanceInput!): Attendance! @requireAuth
     deleteAttendance(id: Int!): Attendance! @requireAuth
   }
 `

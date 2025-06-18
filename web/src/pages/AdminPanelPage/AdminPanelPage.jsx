@@ -155,7 +155,8 @@ const AdminPanelPage = () => {
   // Filter and sort pending exceptions
   const pendingExceptions = (data?.exceptionRequests || [])
     .filter((form) => form.status === 'Pending')
-    .sort((a, b) => new Date(b.date) - new Date(a.date)) // newest first
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .reverse()
 
   const paginatedPendingExceptions = pendingExceptions.slice(
     (exceptionPage - 1) * itemsPerPage,
@@ -305,6 +306,20 @@ const AdminPanelPage = () => {
                           }`}
                         ></span>
                         {form.type}
+                      </div>
+                      {/* Show the date */}
+                      <div className="text-xs text-gray-500 mb-1">
+                        {form.date ? (
+                          <>
+                            Date:{' '}
+                            {new Date(form.date).toLocaleDateString('en-GB', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              timeZone: 'UTC',
+                            })}
+                          </>
+                        ) : null}
                       </div>
                       <p className="text-sm text-gray-600">{form.reason}</p>
                       <div className="flex justify-end gap-2 mt-4">

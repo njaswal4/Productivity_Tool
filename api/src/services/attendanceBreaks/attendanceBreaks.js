@@ -13,6 +13,21 @@ export const attendanceBreak = ({ id }) => {
   })
 }
 
+export const attendanceBreaksForUserInRange = ({ userId, start, end }) => {
+  return db.attendanceBreak.findMany({
+    where: {
+      attendance: {
+        userId,
+        date: {
+          gte: start,
+          lte: end,
+        },
+      },
+    },
+    orderBy: { breakIn: 'asc' },
+  })
+}
+
 export const createAttendanceBreak = ({ input }) => {
   return db.attendanceBreak.create({
     data: input,

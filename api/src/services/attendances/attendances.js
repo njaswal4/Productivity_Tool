@@ -7,12 +7,14 @@ export const attendances = ({ userId, date }) => {
   return db.attendance.findMany({
     where,
     orderBy: { date: 'desc' },
+    include: { breaks: true }, // Include breaks for each attendance
   })
 }
 
 export const attendance = ({ id }) => {
   return db.attendance.findUnique({
     where: { id },
+    include: { breaks: true }, // Include breaks for single attendance
   })
 }
 
@@ -26,6 +28,7 @@ export const attendancesInRange = ({ userId, start, end }) => {
       },
     },
     orderBy: { date: 'asc' },
+    include: { breaks: true }, // Include breaks for each attendance
   })
 }
 
@@ -46,4 +49,12 @@ export const deleteAttendance = ({ id }) => {
   return db.attendance.delete({
     where: { id },
   })
+}
+
+export const Attendance = {
+  breaks: (_obj, { root }) => {
+    return db.attendance
+      .findUnique({ where: { id: root.id } })
+      .breaks()
+  },
 }
