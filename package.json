@@ -7,6 +7,7 @@
     ]
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.4.0",
     "@redwoodjs/auth-dbauth-setup": "8.6.1",
     "@redwoodjs/core": "8.6.1",
     "@redwoodjs/project-config": "8.6.1",
@@ -27,6 +28,7 @@
     "@storybook/react-dom-shim@npm:7.6.20": "https://verdaccio.tobbe.dev/@storybook/react-dom-shim/-/react-dom-shim-8.0.8.tgz"
   },
   "dependencies": {
+    "@capacitor/core": "^7.4.0",
     "react-calendar": "^6.0.0",
     "react-icons": "^5.5.0"
   }

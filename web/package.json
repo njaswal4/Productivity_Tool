@@ -11,6 +11,7 @@
     ]
   },
   "dependencies": {
+    "@capacitor/ios": "^7.4.0",
     "@redwoodjs/auth-dbauth-web": "8.6.1",
     "@redwoodjs/forms": "8.6.1",
     "@redwoodjs/router": "8.6.1",
