@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useQuery, gql } from '@apollo/client'
 import { navigate, routes } from '@redwoodjs/router'
+import Papa from 'papaparse'
+import { useAuth } from 'src/auth'
 
 const ATTENDANCE_QUERY = gql`
   query AttendanceQuery($userId: Int) {
@@ -20,8 +22,6 @@ const ATTENDANCE_QUERY = gql`
   }
 `
 
-
-
 const EXCEPTION_REQUESTS_QUERY = gql`
   query GetUserWithExceptions($id: Int!) {
     user(id: $id) {
@@ -40,6 +40,8 @@ const EXCEPTION_REQUESTS_QUERY = gql`
 `
 
 const Attendance = ({ userId }) => {
+  const { currentUser } = useAuth()
+
   const { data, loading, error, refetch } = useQuery(ATTENDANCE_QUERY, {
     variables: { userId },
     fetchPolicy: 'network-only',
@@ -115,6 +117,34 @@ const Attendance = ({ userId }) => {
     return `${hours}h ${minutes}m`
   }
 
+  // CSV Export
+  const exportAttendanceCSV = () => {
+    if (!attendances.length) {
+      console.warn('No attendance records to export.')
+      return
+    }
+    // Prepare data for CSV: flatten breaks as a string
+    const csvData = attendances.map((rec) => ({
+      ...rec,
+      breaks: (rec.breaks || [])
+        .map(
+          (b, idx) =>
+            `#${idx + 1}: ${b.breakIn ? new Date(b.breakIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''} - ${
+              b.breakOut ? new Date(b.breakOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+            }`
+        )
+        .join('; '),
+    }))
+    const csv = Papa.unparse(csvData)
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${(currentUser?.name || 'user').toLowerCase()}_attendance_history.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   // Listen for attendance updates (from AttendanceCard)
   useEffect(() => {
     const handler = () => {
@@ -149,10 +179,27 @@ const Attendance = ({ userId }) => {
   }, [refetchExceptions])
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
+    <div className="flex flex-col gap-6 lg:flex-row">
       {/* Attendance History Table */}
-      <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mt-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Attendance History</h2>
+      <div className="mt-6 flex-1 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+        <h2 className="mb-6 text-2xl font-bold text-gray-800">
+          Attendance History
+        </h2>
+
+        <button
+          onClick={exportAttendanceCSV}
+          className="mb-4 mr-4 rounded bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 font-semibold"
+        >
+          Export as CSV
+        </button>
+
+        <button
+          onClick={handleRefresh}
+          className="mb-4 rounded bg-gray-600 px-4 py-2 text-white transition hover:bg-gray-700 font-semibold"
+        >
+          Refresh Exceptions
+        </button>
+
         <div className="overflow-x-auto rounded-xl">
           {loading ? (
             <div>Loading...</div>
@@ -160,30 +207,26 @@ const Attendance = ({ userId }) => {
             <div className="text-red-500">Error: {error.message}</div>
           ) : (
             <>
-              <table className="min-w-full divide-y divide-gray-200 rounded-xl overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200 overflow-hidden rounded-xl">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Clock In
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Clock Out
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Status
-                    </th>
+                    {['Date', 'Clock In', 'Clock Out', 'Duration', 'Status'].map((header) => (
+                      <th
+                        key={header}
+                        className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600"
+                      >
+                        {header}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 bg-white">
                   {paginatedAttendances.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-6 text-gray-400">
+                      <td
+                        colSpan={5}
+                        className="py-6 text-center text-gray-400"
+                      >
                         No attendance records found.
                       </td>
                     </tr>
@@ -193,14 +236,14 @@ const Attendance = ({ userId }) => {
                         key={record.id}
                         className={
                           idx % 2 === 0
-                            ? 'bg-gray-50 hover:bg-indigo-50 transition'
-                            : 'hover:bg-indigo-50 transition'
+                            ? 'bg-gray-50 transition hover:bg-indigo-50'
+                            : 'transition hover:bg-indigo-50'
                         }
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 rounded-l-lg">
+                        <td className="whitespace-nowrap rounded-l-lg px-6 py-4 text-sm text-gray-900">
                           {new Date(record.date).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                           {record.clockIn
                             ? new Date(record.clockIn).toLocaleTimeString([], {
                                 hour: '2-digit',
@@ -208,7 +251,7 @@ const Attendance = ({ userId }) => {
                               })
                             : '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                           {record.clockOut
                             ? new Date(record.clockOut).toLocaleTimeString([], {
                                 hour: '2-digit',
@@ -216,7 +259,7 @@ const Attendance = ({ userId }) => {
                               })
                             : '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-gray-900">
                           {/* Office duration only (excluding breaks) */}
                           {(() => {
                             const breaks = record.breaks || []
@@ -236,19 +279,17 @@ const Attendance = ({ userId }) => {
                               : '-'
                           })()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm">
                           <span
-                            className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border
+                            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold leading-5 
                               ${
                                 record.status === 'Present'
-                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  ? 'border-green-200 bg-green-100 text-green-800'
                                   : record.status === 'Late'
-                                  ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                  : record.status === 'Leave'
-                                  ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                  : record.status === 'Weekend'
-                                  ? 'bg-gray-100 text-gray-800 border-gray-200'
-                                  : 'bg-red-100 text-red-800 border-red-200'
+                                    ? 'border-yellow-200 bg-yellow-100 text-yellow-800'
+                                    : record.status === 'Leave'
+                                      ? 'border-blue-200 bg-blue-100 text-blue-800'
+                                      : 'border-red-200 bg-red-100 text-red-800'
                               }`}
                           >
                             {record.status}
@@ -259,21 +300,25 @@ const Attendance = ({ userId }) => {
                   )}
                 </tbody>
               </table>
-              {/* Pagination Controls */}
-              <div className="flex justify-between items-center mt-4">
+
+              <div className="mt-4 flex items-center justify-between">
                 <button
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+                  className="rounded bg-gray-200 px-4 py-2 transition hover:bg-gray-300"
                   disabled={attendancePage === 1}
                   onClick={() => setAttendancePage((prev) => prev - 1)}
                 >
                   Previous
                 </button>
                 <span className="text-sm text-gray-600">
-                  Page {attendancePage} of {Math.ceil(attendances.length / itemsPerPage)}
+                  Page {attendancePage} of{' '}
+                  {Math.ceil(attendances.length / itemsPerPage)}
                 </span>
                 <button
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-                  disabled={attendancePage === Math.ceil(attendances.length / itemsPerPage)}
+                  className="rounded bg-gray-200 px-4 py-2 transition hover:bg-gray-300"
+                  disabled={
+                    attendancePage ===
+                    Math.ceil(attendances.length / itemsPerPage)
+                  }
                   onClick={() => setAttendancePage((prev) => prev + 1)}
                 >
                   Next
@@ -285,21 +330,18 @@ const Attendance = ({ userId }) => {
       </div>
 
       {/* Exception Management Section */}
-      <div className="w-full lg:w-1/3 bg-white rounded-lg shadow p-4 mt-6 flex flex-col">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Exception Management</h2>
+      <div className="mt-6 flex w-full flex-col rounded-lg bg-white p-4 shadow lg:w-1/3">
+        <h2 className="mb-4 text-lg font-bold text-gray-800">
+          Exception Management
+        </h2>
         <button
-          className="w-full mb-4 py-2 bg-indigo-600 text-white rounded shadow hover:bg-indigo-700 transition-colors font-semibold"
+          className="mb-4 w-full rounded bg-indigo-600 py-2 font-semibold text-white shadow transition-colors hover:bg-indigo-700"
           onClick={() => navigate('/form')}
         >
           Submit New Exception
         </button>
-        <button
-          className="self-end px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition mb-4"
-          onClick={handleRefresh}
-        >
-          Refresh
-        </button>
-        <div className="space-y-3 mb-6">
+       
+        <div className="mb-6 space-y-3">
           {exceptionLoading ? (
             <div>Loading...</div>
           ) : exceptionError ? (
@@ -307,16 +349,19 @@ const Attendance = ({ userId }) => {
           ) : !exceptionData?.user ? (
             <div className="text-red-500">User not found or not loaded.</div>
           ) : paginatedExceptions.length === 0 ? (
-            <div className="text-gray-500">You have not submitted any requests.</div>
+            <div className="text-gray-500">
+              You have not submitted any requests.
+            </div>
           ) : (
             paginatedExceptions.map((ex) => (
               <div
                 key={ex.id}
-                className="flex flex-col bg-gray-50 rounded-lg border px-4 py-3"
+                className="flex flex-col rounded-lg border bg-gray-50 px-4 py-3"
               >
-                <div className="flex justify-between items-center mb-1">
+                <div className="mb-1 flex items-center justify-between">
                   <span className="font-semibold text-gray-800">{ex.type}</span>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-semibold
                     ${ex.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : ''}
                     ${ex.status === 'Approved' ? 'bg-green-100 text-green-700' : ''}
                     ${ex.status === 'Rejected' ? 'bg-red-100 text-red-700' : ''}`}
@@ -325,26 +370,33 @@ const Attendance = ({ userId }) => {
                   </span>
                 </div>
                 <div className="text-xs text-gray-500">
-                  {new Date(ex.date).toLocaleDateString('en-GB', { timeZone: 'UTC' })} - {ex.reason}
+                  {new Date(ex.date).toLocaleDateString('en-GB', {
+                    timeZone: 'UTC',
+                  })}{' '}
+                  - {ex.reason}
                 </div>
               </div>
             ))
           )}
         </div>
-        <div className="flex justify-between items-center mt-4">
+        <div className="mt-4 flex items-center justify-between">
           <button
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+            className="rounded bg-gray-200 px-4 py-2 transition hover:bg-gray-300"
             disabled={exceptionPage === 1}
             onClick={() => setExceptionPage((prev) => prev - 1)}
           >
             Previous
           </button>
           <span className="text-sm text-gray-600">
-            Page {exceptionPage} of {Math.ceil(exceptionRequests.length / itemsPerPage)}
+            Page {exceptionPage} of{' '}
+            {Math.ceil(exceptionRequests.length / itemsPerPage)}
           </span>
           <button
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-            disabled={exceptionPage === Math.ceil(exceptionRequests.length / itemsPerPage)}
+            className="rounded bg-gray-200 px-4 py-2 transition hover:bg-gray-300"
+            disabled={
+              exceptionPage ===
+              Math.ceil(exceptionRequests.length / itemsPerPage)
+            }
             onClick={() => setExceptionPage((prev) => prev + 1)}
           >
             Next
