@@ -62,6 +62,18 @@ const BOOKINGS_QUERY = gql`
   }
 `
 
+const WEEKLY_BREAKS_QUERY = gql`
+  query WeeklyBreaks($userId: Int!, $start: DateTime!, $end: DateTime!) {
+    attendanceBreaksForUserInRange(userId: $userId, start: $start, end: $end) {
+      id
+      attendanceId
+      breakIn
+      breakOut
+      duration
+    }
+  }
+`
+
 // Helper for UTC midnight ISO string
 function getUTCMidnightISOString(date = new Date()) {
   const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
@@ -80,6 +92,7 @@ function getStartOfWeekUTC(date) {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
   const day = d.getUTCDay() || 7
   d.setUTCDate(d.getUTCDate() - day + 1)
+  d.setUTCHours(0, 0, 0, 0)
   return d
 }
 const weekStart = getStartOfWeekUTC(new Date())
@@ -217,6 +230,7 @@ const DashboardPage = () => {
   const [officeHours, setOfficeHours] = React.useState(null)
 
   const GET_BREAKS_QUERY = gql`
+ 
     query GetAttendanceBreaks($attendanceId: Int!) {
       attendanceBreaks(attendanceId: $attendanceId) {
         id
@@ -397,6 +411,17 @@ const DashboardPage = () => {
     return `${hours}h ${minutes}m`
   }
 
+  const { data: weeklyBreaksData } = useQuery(WEEKLY_BREAKS_QUERY, {
+    variables: {
+      userId,
+      start: weekStart.toISOString(),
+      end: weekEnd.toISOString(),
+    },
+    fetchPolicy: 'network-only',
+  })
+
+  const weeklyBreaks = weeklyBreaksData?.attendanceBreaksForUserInRange || []
+
   return (
     <>
       <Metadata title="Dashboard" description="Dashboard page" />
@@ -410,21 +435,21 @@ const DashboardPage = () => {
           </div>
           {/* Right: Attendance Card (1/3 width on large screens) */}
           <div id="attendance-section">
-          <AttendanceCard
-            todayAttendance={todayAttendance}
-            weeklyAttendances={weeklyAttendances}
-            onClockIn={handleClockIn}
-            onClockOut={handleClockOut}
-            loading={loading || clockInLoading || clockOutLoading || weeklyLoading}
-            refetch={refetch} // Pass refetch function
-            officeHours={officeHours}
-            breaks={breaks}
-            overtimeToday={overtimeToday}
-            onBreakIn={handleBreakIn}
-            onBreakOut={handleBreakOut}
-            onOvertimeClockIn={handleOvertimeClockIn}
-            onOvertimeClockOut={handleOvertimeClockOut}
-          />
+            <AttendanceCard
+              todayAttendance={todayAttendance}
+              weeklyAttendances={weeklyAttendances}
+              onClockIn={handleClockIn}
+              onClockOut={handleClockOut}
+              loading={loading || clockInLoading || clockOutLoading || weeklyLoading}
+              refetch={refetch}
+              officeHours={officeHours}
+              breaks={weeklyBreaks} 
+              overtimeToday={overtimeToday}
+              onBreakIn={handleBreakIn}
+              onBreakOut={handleBreakOut}
+              onOvertimeClockIn={handleOvertimeClockIn}
+              onOvertimeClockOut={handleOvertimeClockOut}
+            />
           </div>
         </div>
         {/* Attendance Section with ID for scroll */}

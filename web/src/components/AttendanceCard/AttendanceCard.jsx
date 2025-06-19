@@ -231,34 +231,77 @@ const AttendanceCard = ({
           </div>
         )}
       </div>
+      {/* Weekly Overview */}
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
         <h3 className="font-medium text-gray-800 mb-3">Weekly Overview</h3>
-        <div className="grid grid-cols-7 gap-2 text-center">
+        <div className="grid grid-cols-7 gap-2 text-center mb-1">
           {daysOfWeek.map((day, i) => (
             <div key={day} className="text-xs text-gray-500">{day}</div>
           ))}
         </div>
-        {/* --- Total Duration row with "T" initial --- */}
+        {/* Top Row: Total Duration (including breaks) */}
         <div className="flex items-center mb-1">
-          <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-green-700">T</div>
+          <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-blue-700">TD</div>
           <div className="grid grid-cols-7 gap-2 flex-1">
             {attendanceByDay.map((record, i) => (
               <div
                 key={i}
                 className={`h-8 flex items-center justify-center rounded text-xs border
-                  ${record && record.duration
-                    ? 'bg-green-100 text-green-800 border-green-200'
+                  ${record && record.clockIn && record.clockOut
+                    ? 'bg-blue-100 text-blue-800 border-blue-200'
                     : 'bg-gray-100 text-gray-500 border-gray-200'
                   }`}
               >
-                {record && (record.duration ||
-                  getDuration(record.clockIn, record.clockOut)) || '-'}
+                {record && record.clockIn && record.clockOut
+                  ? msToHrsMin(new Date(record.clockOut) - new Date(record.clockIn))
+                  : '-'}
               </div>
             ))}
           </div>
         </div>
-        {/* --- Breaks row with "B" initial --- */}
-        <div className="flex items-center">
+        {/* Second Row: Office Hours (excluding breaks) */}
+        <div className="flex items-center mb-1">
+          <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-green-700">O</div>
+          <div className="grid grid-cols-7 gap-2 flex-1">
+            {attendanceByDay.map((record, i) => {
+              if (!record || !record.clockIn || !record.clockOut) {
+                return (
+                  <div
+                    key={i}
+                    className="h-8 flex items-center justify-center rounded text-xs border bg-gray-100 text-gray-500 border-gray-200"
+                  >
+                    -
+                  </div>
+                )
+              }
+              // Calculate total break ms for this day
+              const dayBreaks = (breaks || []).filter(b => {
+                const recDate = new Date(b.breakIn)
+                recDate.setUTCHours(0, 0, 0, 0)
+                const attDate = new Date(record.clockIn)
+                attDate.setUTCHours(0, 0, 0, 0)
+                return recDate.getTime() === attDate.getTime()
+              })
+              const totalBreakMs = dayBreaks.reduce((sum, b) => {
+                if (b.breakIn && b.breakOut) {
+                  return sum + (new Date(b.breakOut) - new Date(b.breakIn))
+                }
+                return sum
+              }, 0)
+              const officeMs = Math.max(new Date(record.clockOut) - new Date(record.clockIn) - totalBreakMs, 0)
+              return (
+                <div
+                  key={i}
+                  className="h-8 flex items-center justify-center rounded text-xs border bg-green-100 text-green-800 border-green-200"
+                >
+                  {msToHrsMin(officeMs)}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        {/* Breaks Row */}
+        <div className="flex items-center mb-1">
           <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-yellow-700">B</div>
           <div className="grid grid-cols-7 gap-2 flex-1">
             {weekDays.map((day, i) => {
@@ -288,19 +331,12 @@ const AttendanceCard = ({
             })}
           </div>
         </div>
-        {/* --- Overtime row with "O" initial --- */}
+        {/* Overtime Row */}
         <div className="flex items-center">
-          <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-indigo-700">O</div>
+          <div className="w-6 flex-shrink-0 flex items-center justify-center font-bold text-indigo-700">OH</div>
           <div className="grid grid-cols-7 gap-2 flex-1">
-            {weekDays.map((day, i) => {
-              const overtimeRec = (weeklyAttendances || []).find(a => {
-                const recDate = new Date(a.date)
-                recDate.setUTCHours(0, 0, 0, 0)
-                return recDate.getTime() === day.getTime()
-              })
-              const overtimeMs = overtimeRec && overtimeRec.overtimeDurationMs
-                ? overtimeRec.overtimeDurationMs
-                : 0
+            {attendanceByDay.map((record, i) => {
+              const overtimeMs = record?.overtimeDurationMs || 0
               return (
                 <div
                   key={i}
@@ -316,16 +352,12 @@ const AttendanceCard = ({
             })}
           </div>
         </div>
-        {/* --- Index row for initials --- */}
-        <div className="flex items-center mt-1">
-          <div className="w-6 flex-shrink-0"></div>
-          <div className="grid grid-cols-7 gap-2 flex-1">
-            <div className="col-span-7 text-left text-[11px] text-gray-400">
-              <span className="font-bold text-green-700">T</span> = Total Duration,&nbsp;
-              <span className="font-bold text-yellow-700">B</span> = Breaks,&nbsp;
-              <span className="font-bold text-indigo-700">O</span> = Overtime
-            </div>
-          </div>
+        {/* Legend */}
+        <div className="mt-2 text-left text-xs text-gray-400">
+          <span className="font-bold text-blue-700">TD</span> = Total Duration,&nbsp;
+          <span className="font-bold text-green-700">O</span> = Office Hours (excl. breaks),&nbsp;
+          <span className="font-bold text-yellow-700">B</span> = Breaks,&nbsp;
+          <span className="font-bold text-indigo-700">OH</span> = Overtime Hours
         </div>
       </div>
     </div>
