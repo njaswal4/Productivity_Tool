@@ -348,7 +348,7 @@ const Attendance = ({ userId }) => {
             <div className="text-red-500">Error: {exceptionError.message}</div>
           ) : !exceptionData?.user ? (
             <div className="text-red-500">User not found or not loaded.</div>
-          ) : paginatedExceptions.length === 0 ? (
+          ) : paginatedExceptions.length === 0? (
             <div className="text-gray-500">
               You have not submitted any requests.
             </div>
@@ -382,7 +382,7 @@ const Attendance = ({ userId }) => {
         <div className="mt-4 flex items-center justify-between">
           <button
             className="rounded bg-gray-200 px-4 py-2 transition hover:bg-gray-300"
-            disabled={exceptionPage === 1}
+            disabled={exceptionPage === 0}
             onClick={() => setExceptionPage((prev) => prev - 1)}
           >
             Previous

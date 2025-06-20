@@ -443,7 +443,7 @@ const DashboardPage = () => {
               loading={loading || clockInLoading || clockOutLoading || weeklyLoading}
               refetch={refetch}
               officeHours={officeHours}
-              breaks={weeklyBreaks} 
+            breaks={breaks} 
               overtimeToday={overtimeToday}
               onBreakIn={handleBreakIn}
               onBreakOut={handleBreakOut}
