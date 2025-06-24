@@ -278,6 +278,8 @@ export const BookingForm = ({ refetchBookings }) => {
             </button>
           </div>
         </form>
+        {error && <div className="text-red-600 font-bold text-center mb-2">{error}</div>}
+        {success && <div className="text-green-600 font-bold text-center mb-2">{success}</div>}
       </div>
       <BookingLog />
     </div>
