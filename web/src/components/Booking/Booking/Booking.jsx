@@ -131,11 +131,9 @@ export const BookingForm = ({ refetchBookings }) => {
       return
     }
 
-    const startTimeString = `${format(selectedDate, 'yyyy-MM-dd')} ${selectedSlots[0].start}`
-    const endTimeString = `${format(selectedDate, 'yyyy-MM-dd')} ${selectedSlots[selectedSlots.length - 1].end}`
-
-    const startTime = new Date(Date.parse(startTimeString))
-    const endTime = new Date(Date.parse(endTimeString))
+    // Use parseSlotTime for mobile compatibility!
+    const startTime = parseSlotTime(selectedDate, selectedSlots[0].start)
+    const endTime = parseSlotTime(selectedDate, selectedSlots[selectedSlots.length - 1].end)
 
     if (!startTime || isNaN(startTime.getTime()) || !endTime || isNaN(endTime.getTime())) {
       setError('Invalid start or end time.')
@@ -152,7 +150,7 @@ export const BookingForm = ({ refetchBookings }) => {
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             notes,
-            meetingRoomId: selectRoomId ? Number(selectRoomId) : null, // CORRECT
+            meetingRoomId: selectRoomId ? Number(selectRoomId) : null,
           },
         },
       })
@@ -164,7 +162,7 @@ export const BookingForm = ({ refetchBookings }) => {
       if (refetchBookings) refetchBookings()
       if (refetchBookingsData) refetchBookingsData()
     } catch (err) {
-      console.error('Error creating booking:', err) // Log the error for debugging
+      console.error('Error creating booking:', err)
       setError(err.message)
       setSuccess('')
     }
