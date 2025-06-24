@@ -46,6 +46,7 @@ const AttendanceCard = ({
   overtimeToday,
   onOvertimeClockIn,
   onOvertimeClockOut,
+  breakLoading = false,
 }) => {
   const hasClockedIn = !!todayAttendance?.clockIn
   const hasClockedOut = !!todayAttendance?.clockOut
@@ -176,9 +177,9 @@ const AttendanceCard = ({
             <button
               className="flex-1 py-3 bg-yellow-500 text-white rounded-lg font-semibold text-lg shadow hover:bg-yellow-600 transition"
               onClick={onBreakIn}
-              disabled={loading}
+              disabled={loading || breakLoading}
             >
-              {loading ? 'Starting Break...' : 'Break'}
+              {loading || breakLoading ? 'Starting Break...' : 'Break'}
             </button>
             <button
               className="flex-1 py-3 bg-red-500 text-white rounded-lg font-semibold text-lg shadow hover:bg-red-600 transition"
@@ -194,9 +195,9 @@ const AttendanceCard = ({
             <button
               className="flex-1 py-3 bg-green-500 text-white rounded-lg font-semibold text-lg shadow hover:bg-green-600 transition"
               onClick={onBreakOut}
-              disabled={loading}
+              disabled={loading || breakLoading}
             >
-              {loading ? 'Ending Break...' : 'Break Out'}
+              {loading || breakLoading ? 'Ending Break...' : 'Break Out'}
             </button>
             <button
               className="flex-1 py-3 bg-red-500 text-white rounded-lg font-semibold text-lg shadow hover:bg-red-600 transition"

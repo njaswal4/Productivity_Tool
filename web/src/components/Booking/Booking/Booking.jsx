@@ -181,28 +181,28 @@ export const BookingForm = ({ refetchBookings }) => {
   }, [success, error])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-100 px-6 py-16">
-      <div className="max-w-[1600px] mx-auto bg-white/60 backdrop-blur-xl border border-gray-200 rounded-[2rem] shadow-2xl p-10 md:p-16 space-y-14">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-center text-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-white to-gray-100 px-2 py-8 sm:px-4 md:px-6 lg:px-8">
+      <div className="max-w-[1600px] mx-auto bg-white/60 backdrop-blur-xl border border-gray-200 rounded-[2rem] shadow-2xl p-2 sm:p-6 md:p-10 lg:p-16 space-y-10">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center text-gray-800">
           Book a Meeting Room
         </h1>
 
         <form
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start w-full"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-start w-full"
         >
           {/* Calendar Column */}
-          <div className="w-full bg-white/70 backdrop-blur-md border border-gray-300 rounded-3xl px-4 sm:px-10 py-10 shadow-md hover:shadow-xl transition">
-            <div className="flex items-center gap-2 mb-6 text-red-500 justify-center">
+          <div className="w-full bg-white/70 backdrop-blur-md border border-gray-300 rounded-3xl px-2 sm:px-6 md:px-10 py-6 md:py-10 shadow-md hover:shadow-xl transition">
+            <div className="flex items-center gap-2 mb-4 md:mb-6 text-red-500 justify-center">
               <FaRegCalendarAlt className="text-xl" />
-              <h2 className="text-xl font-semibold tracking-wide">Choose Date</h2>
+              <h2 className="text-lg md:text-xl font-semibold tracking-wide">Choose Date</h2>
             </div>
             <div className="flex justify-center">
               <Calendar
                 onChange={setSelectedDate}
                 value={selectedDate}
                 minDate={new Date()}
-                className="react-calendar w-full max-w-[700px] p-6 rounded-2xl"
+                className="react-calendar w-full max-w-[350px] md:max-w-[700px] p-2 md:p-6 rounded-2xl"
                 tileClassName={({ date }) =>
                   format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
                     ? 'bg-red-500 text-white font-semibold rounded-xl shadow-md'
@@ -213,22 +213,22 @@ export const BookingForm = ({ refetchBookings }) => {
           </div>
 
           {/* Time Slots Column */}
-          <div className="w-full bg-white/70 backdrop-blur-md border border-gray-300 rounded-3xl px-4 sm:px-10 py-10 shadow-md hover:shadow-xl transition flex flex-col items-center">
-            <div className="flex items-center gap-2 mb-4 text-red-500">
+          <div className="w-full bg-white/70 backdrop-blur-md border border-gray-300 rounded-3xl px-2 sm:px-6 md:px-10 py-6 md:py-10 shadow-md hover:shadow-xl transition flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-2 md:mb-4 text-red-500">
               <FaRegClock className="text-xl" />
-              <h2 className="text-xl font-semibold tracking-wide">Choose Time Slots</h2>
+              <h2 className="text-lg md:text-xl font-semibold tracking-wide">Choose Time Slots</h2>
             </div>
-            <p className="text-center text-gray-600 mb-6 font-medium">
+            <p className="text-center text-gray-600 mb-4 md:mb-6 font-medium text-sm md:text-base">
               {format(selectedDate, 'eeee, MMMM do yyyy')}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-[520px] max-h-[400px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4 w-full max-w-[520px] max-h-[400px] overflow-y-auto pr-1">
               {slots
-                .filter((slot) => !isSlotInPast(slot) && !isSlotBooked(slot)) // Filter out unavailable slots
+                .filter((slot) => !isSlotInPast(slot) && !isSlotBooked(slot))
                 .map((slot, idx) => (
                   <button
                     key={idx}
                     onClick={() => toggleSlotSelection(slot)}
-                    className={`py-3 rounded-xl text-base font-semibold transition transform duration-200 border ${
+                    className={`py-2 md:py-3 rounded-xl text-sm md:text-base font-semibold transition transform duration-200 border ${
                       selectedSlots.some((s) => s.start === slot.start && s.end === slot.end)
                         ? 'bg-red-500 text-white shadow-lg scale-105'
                         : 'bg-white hover:bg-red-100 hover:scale-105 text-gray-800'
@@ -238,8 +238,6 @@ export const BookingForm = ({ refetchBookings }) => {
                   </button>
                 ))}
             </div>
-
-            {/* Display message if no slots are available */}
             {slots.filter((slot) => !isSlotInPast(slot) && !isSlotBooked(slot)).length === 0 && (
               <p className="text-center text-gray-600 mt-4">
                 No available slots for the selected date. Please choose another date or check back later.
@@ -248,12 +246,11 @@ export const BookingForm = ({ refetchBookings }) => {
           </div>
 
           {/* Meeting Title and Notes */}
-          <div className="col-span-2 flex flex-col gap-4 mt-8">
-            <div className="col-span-2">
+          <div className="col-span-1 md:col-span-2 flex flex-col gap-4 mt-6 md:mt-8">
+            <div>
               <MeetingRoomSelector
                 selectedRoomId={selectRoomId}
-              
-                onChange={(roomId) => setSelectedRoomId(roomId)} // Ensure the correct value is passed
+                onChange={(roomId) => setSelectedRoomId(roomId)}
               />
             </div>
             <input
@@ -271,7 +268,7 @@ export const BookingForm = ({ refetchBookings }) => {
             />
           </div>
 
-          <div className="col-span-2 flex justify-center mt-8">
+          <div className="col-span-1 md:col-span-2 flex justify-center mt-6 md:mt-8">
             <button
               type="submit"
               className="rw-button rw-button-blue px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition"

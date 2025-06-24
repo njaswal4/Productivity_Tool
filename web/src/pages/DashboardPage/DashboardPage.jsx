@@ -182,14 +182,14 @@ const DashboardPage = () => {
     }
   `
 
-  const [createBreakMutation] = useMutation(CREATE_BREAK_MUTATION, {
+  const [createBreakMutation, { loading: createBreakLoading }] = useMutation(CREATE_BREAK_MUTATION, {
     onCompleted: () => {
       refetch()
       refetchWeekly()
     },
   })
 
-  const [updateBreakMutation] = useMutation(UPDATE_BREAK_MUTATION, {
+  const [updateBreakMutation, { loading: updateBreakLoading }] = useMutation(UPDATE_BREAK_MUTATION, {
     onCompleted: () => {
       refetch()
       refetchWeekly()
@@ -337,20 +337,10 @@ const DashboardPage = () => {
           breakIn: now,
         },
       },
-      onCompleted: (data) => {
-        // Optimistically add the new break to local state
-        setBreaks((prev) => [
-          ...prev,
-          {
-            id: data.createAttendanceBreak.id,
-            attendanceId: todayAttendance.id,
-            breakIn: now,
-            breakOut: null,
-            duration: null,
-          },
-        ])
-        // Optionally, refetch after a short delay to sync with backend
-        setTimeout(() => refetchBreaks(), 500)
+      onCompleted: () => {
+        // Refetch both today's and weekly breaks after mutation
+        refetchBreaks()
+        refetchWeeklyBreaks()
       },
     })
   }
@@ -370,8 +360,9 @@ const DashboardPage = () => {
           },
         },
       })
-      // Dispatch event to notify other components to refetch breaks
-      window.dispatchEvent(new CustomEvent('attendanceBreaksUpdated'))
+      // Refetch both today's and weekly breaks after mutation
+      refetchBreaks()
+      refetchWeeklyBreaks()
     } catch (error) {
       console.error('Error updating break out:', error)
       alert('Failed to end break. Please try again.')
@@ -411,7 +402,7 @@ const DashboardPage = () => {
     return `${hours}h ${minutes}m`
   }
 
-  const { data: weeklyBreaksData } = useQuery(WEEKLY_BREAKS_QUERY, {
+  const { data: weeklyBreaksData, refetch: refetchWeeklyBreaks } = useQuery(WEEKLY_BREAKS_QUERY, {
     variables: {
       userId,
       start: weekStart.toISOString(),
@@ -443,8 +434,7 @@ const DashboardPage = () => {
               loading={loading || clockInLoading || clockOutLoading || weeklyLoading}
               refetch={refetch}
               officeHours={officeHours}
-            breaks={weeklyBreaks} 
-            
+              breaks={weeklyBreaks} 
               overtimeToday={overtimeToday}
               onBreakIn={handleBreakIn}
               onBreakOut={handleBreakOut}
