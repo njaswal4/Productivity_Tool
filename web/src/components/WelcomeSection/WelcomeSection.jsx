@@ -129,12 +129,7 @@ function ProgressBar({ userId, weeklyGoal }) {
 
 const WelcomeSection = () => {
   const [currentTime, setCurrentTime] = useState("")
-  const [name, setName] = useState('')
-  const [tasks, setTasks] = useState([
-    { text: 'Check emails', done: false },
-    { text: 'Plan your day', done: false },
-    { text: 'Complete one key task', done: false },
-  ])
+  
   const { currentUser } = useAuth()
 
   useEffect(() => {
@@ -158,13 +153,7 @@ const WelcomeSection = () => {
   const Name =
     currentUser?.name || currentUser?.email || 'User'
 
-  const toggleTask = idx => {
-    setTasks(tasks =>
-      tasks.map((task, i) =>
-        i === idx ? { ...task, done: !task.done } : task
-      )
-    )
-  }
+ 
 
   return (
     <div className="relative z-30 flex flex-col md:flex-row items-start md:items-center justify-between mb-8 mt-32">

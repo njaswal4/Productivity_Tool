@@ -29,13 +29,13 @@ export const cookieName = 'session_%port%'
  * seen if someone were to open the Web Inspector in their browser.
  */
 export const getCurrentUser = async (session) => {
-  if (!session || typeof session.id !== 'number') {
+  if (!session || !session.id) {
     throw new Error('Invalid session')
   }
 
   return await db.user.findUnique({
-    where: { id: session.id },
-    select: { id: true, email: true, name: true }, // Ensure these fields are safe to expose
+    where: { id: Number(session.id) }, // Convert to number for Prisma
+    select: { id: true, email: true, name: true },
   })
 }
 

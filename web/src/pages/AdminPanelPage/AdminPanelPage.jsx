@@ -145,7 +145,7 @@ const AdminPanelPage = () => {
 
   const pendingExceptions = (data?.exceptionRequests || [])
     .filter((form) => form.status === 'Pending')
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
     .reverse()
 
   const paginatedPendingExceptions = pendingExceptions.slice(
@@ -154,14 +154,21 @@ const AdminPanelPage = () => {
   )
 
   useEffect(() => {
-    const handler = () => refetch()
-    window.addEventListener('exceptionRequestsChanged', handler)
+    const handler = async () => {
+      console.log('Admin: exceptionRequestsUpdated event received, refetching...')
+      const result = await refetch()
+      console.log('Admin: refetch result:', result.data)
+    }
+    window.addEventListener('exceptionRequestsUpdated', handler)
     const storageHandler = (e) => {
-      if (e.key === 'exceptionRequestsChanged') refetch()
+      if (e.key === 'exceptionRequestsUpdated') {
+        console.log('Admin: exceptionRequestsUpdated storage event, refetching...')
+        refetch()
+      }
     }
     window.addEventListener('storage', storageHandler)
     return () => {
-      window.removeEventListener('exceptionRequestsChanged', handler)
+      window.removeEventListener('exceptionRequestsUpdated', handler)
       window.removeEventListener('storage', storageHandler)
     }
   }, [refetch])
@@ -198,12 +205,16 @@ const AdminPanelPage = () => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto mt-10 px-4">
-        <h1 className="text-4xl font-extrabold mb-10 text-center text-blue-800 tracking-tight">Admin Panel</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+      <div className="mx-auto mt-10 max-w-7xl px-4">
+        <h1 className="mb-10 text-center text-4xl font-extrabold tracking-tight text-blue-800">
+          Admin Panel
+        </h1>
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
           {/* Manage Users Section */}
-          <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-8">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800">Manage Users</h2>
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
+            <h2 className="mb-6 text-2xl font-semibold text-gray-800">
+              Manage Users
+            </h2>
             {allUsersLoading ? (
               <div className="text-gray-500">Loading...</div>
             ) : allUsersError ? (
@@ -256,8 +267,10 @@ const AdminPanelPage = () => {
           </div>
 
           {/* Exception Requests Section */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800">Pending Exception Requests</h2>
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
+            <h2 className="mb-6 text-2xl font-semibold text-gray-800">
+              Pending Exception Requests
+            </h2>
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : error ? (
@@ -349,8 +362,10 @@ const AdminPanelPage = () => {
         </div>
 
         {/* Office Hours Section */}
-        <div className="mt-12 bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800">Office Hours</h2>
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
+          <h2 className="mb-6 text-2xl font-semibold text-gray-800">
+            Office Hours
+          </h2>
           {officeHoursLoading ? (
             <div className="text-gray-500">Loading...</div>
           ) : officeHoursError ? (
@@ -391,7 +406,10 @@ const AdminPanelPage = () => {
 
         {/* Meeting Rooms Section */}
         <div className="mt-12">
-          <MeetingRoomsSection key={meetingRoomsKey} onChanged={handleMeetingRoomsChanged} />
+          <MeetingRoomsSection
+            key={meetingRoomsKey}
+            onChanged={handleMeetingRoomsChanged}
+          />
         </div>
       </div>
     </>

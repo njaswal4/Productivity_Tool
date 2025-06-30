@@ -1,3 +1,5 @@
+import { AuthenticationError } from '@redwoodjs/graphql-server'
+import { hashPassword, verifyPassword } from '@redwoodjs/auth-dbauth-api'
 import { db } from 'src/lib/db'
 
 export const users = () => {
@@ -53,4 +55,23 @@ export const User = {
     console.log('User:', user.id, 'Attendances:', records)
     return records || []
   },
+}
+
+export const changePassword = async ({ currentPassword, newPassword }, { currentUser }) => {
+  console.log('changePassword called', { currentUser })
+  if (!currentUser) throw new AuthenticationError('Not authenticated')
+
+  const user = await db.user.findUnique({ where: { id: currentUser.id } })
+  if (!user) throw new AuthenticationError('User not found')
+
+  const valid = await verifyPassword(currentPassword, user.hashedPassword, user.salt)
+  console.log('Password valid?', valid)
+  if (!valid) throw new AuthenticationError('Current password is incorrect')
+
+  const [hashedPassword, salt] = hashPassword(newPassword)
+  await db.user.update({
+    where: { id: currentUser.id },
+    data: { hashedPassword, salt },
+  })
+  return true
 }
