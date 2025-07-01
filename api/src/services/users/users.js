@@ -64,6 +64,9 @@ export const changePassword = async ({ currentPassword, newPassword }, { current
   const user = await db.user.findUnique({ where: { id: currentUser.id } })
   if (!user) throw new AuthenticationError('User not found')
 
+  console.log('User record:', user)
+  console.log('Current password input:', currentPassword)
+
   const valid = await verifyPassword(currentPassword, user.hashedPassword, user.salt)
   console.log('Password valid?', valid)
   if (!valid) throw new AuthenticationError('Current password is incorrect')

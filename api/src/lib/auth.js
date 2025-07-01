@@ -1,6 +1,6 @@
 import { AuthenticationError, ForbiddenError } from '@redwoodjs/graphql-server'
 
-import { db } from './db'
+import { db } from 'src/lib/db'
 
 /**
  * The name of the cookie that dbAuth sets
@@ -29,12 +29,13 @@ export const cookieName = 'session_%port%'
  * seen if someone were to open the Web Inspector in their browser.
  */
 export const getCurrentUser = async (session) => {
+  console.log('getCurrentUser session:', session)
+
   if (!session || !session.id) {
     throw new Error('Invalid session')
   }
-
   return await db.user.findUnique({
-    where: { id: Number(session.id) }, // Convert to number for Prisma
+    where: { id: Number(session.id) },
     select: { id: true, email: true, name: true },
   })
 }

@@ -1,14 +1,14 @@
 import { render } from '@redwoodjs/testing/web'
 
-import ChangePasswordPage from './ChangePasswordPage'
+import ChangePasswordForm from './ChangePasswordForm'
 
 //   Improve this test with help from the Redwood Testing Doc:
-//   https://redwoodjs.com/docs/testing#testing-pages-layouts
+//    https://redwoodjs.com/docs/testing#testing-components
 
-describe('ChangePasswordPage', () => {
+describe('ChangePasswordForm', () => {
   it('renders successfully', () => {
     expect(() => {
-      render(<ChangePasswordPage />)
+      render(<ChangePasswordForm />)
     }).not.toThrow()
   })
 })

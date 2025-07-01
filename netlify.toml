@@ -24,3 +24,4 @@
   targetPort = 8910
   # Point your browser to this port to access your app:
   port = 8888
+ 

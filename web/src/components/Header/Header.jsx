@@ -3,6 +3,8 @@ import { useAuth } from 'src/auth'
 import { Link, routes } from '@redwoodjs/router'
 import { useMutation } from '@redwoodjs/web'
 
+import ChangePasswordForm from 'src/components/ChangePasswordForm/ChangePasswordForm'
+
 const UPDATE_USER_MUTATION = gql`
   mutation UpdateUser($id: Int!, $input: UpdateUserInput!) {
     updateUser(id: $id, input: $input) {
@@ -27,6 +29,9 @@ const Header = ({ isAdmin }) => {
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState('')
   const [profileSuccess, setProfileSuccess] = useState('')
+
+  // Modal state for changing password
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -80,6 +85,11 @@ const Header = ({ isAdmin }) => {
 
   return (
     <>
+      {/* Change Password Modal */}
+      {showChangePasswordModal && (
+        <ChangePasswordForm onClose={() => setShowChangePasswordModal(false)} />
+      )}
+
       {/* Profile Update Modal */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -175,7 +185,7 @@ const Header = ({ isAdmin }) => {
                       type="button"
                       onClick={() => {
                         setMenuOpen(false)
-                        window.location.href = routes.changePassword ? routes.changePassword() : '/change-password'
+                        setShowChangePasswordModal(true)
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
                     >

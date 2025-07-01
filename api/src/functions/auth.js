@@ -1,5 +1,5 @@
 import { DbAuthHandler } from '@redwoodjs/auth-dbauth-api'
-
+import nodemailer from 'nodemailer'
 import { cookieName } from 'src/lib/auth'
 import { db } from 'src/lib/db'
 
@@ -22,12 +22,30 @@ export const handler = async (event, context) => {
     // so don't include anything you wouldn't want prying eyes to see. The
     // `user` here has been sanitized to only include the fields listed in
     // `allowedUserFields` so it should be safe to return as-is.
-    handler: (user, _resetToken) => {
-      // TODO: Send user an email/message with a link to reset their password,
-      // including the `resetToken`. The URL should look something like:
-      // `http://localhost:8910/reset-password?resetToken=${resetToken}`
+    handler: async (user, resetToken) => {
+      // Use environment variables for credentials!
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      })
 
-      return user
+      const resetUrl = `http://localhost:8910/reset-password?resetToken=${resetToken}`
+
+      await transporter.sendMail({
+        from: `"Your App" <${process.env.SMTP_USER}>`,
+        to: user.email,
+        subject: 'Reset your password',
+        text: `Click this link to reset your password: ${resetUrl}`,
+        html: `<p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
+      })
+
+      // Optionally return the email for frontend toast
+      return { email: user.email }
     },
 
     // How long the resetToken is valid for, in seconds (default is 24 hours)

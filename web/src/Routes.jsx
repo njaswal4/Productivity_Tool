@@ -16,9 +16,6 @@ import { useAuth } from './auth'
 const Routes = () => {
   return (
     <Router useAuth={useAuth}>
-      <PrivateSet unauthenticated="login">
-        <Route path="/change-password" page={ChangePasswordPage} name="changePassword" />
-      </PrivateSet>
       <Route path="/login" page={LoginPage} name="login" />
       <Route path="/signup" page={SignupPage} name="signup" />
       <Route path="/forgot-password" page={ForgotPasswordPage} name="forgotPassword" />
