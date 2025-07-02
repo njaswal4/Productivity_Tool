@@ -3,7 +3,6 @@ import { useAuth } from 'src/auth'
 import { Link, routes } from '@redwoodjs/router'
 import { useMutation } from '@redwoodjs/web'
 
-import ChangePasswordForm from 'src/components/ChangePasswordForm/ChangePasswordForm'
 
 const UPDATE_USER_MUTATION = gql`
   mutation UpdateUser($id: Int!, $input: UpdateUserInput!) {
@@ -85,10 +84,7 @@ const Header = ({ isAdmin }) => {
 
   return (
     <>
-      {/* Change Password Modal */}
-      {showChangePasswordModal && (
-        <ChangePasswordForm onClose={() => setShowChangePasswordModal(false)} />
-      )}
+   
 
       {/* Profile Update Modal */}
       {showProfileModal && (
@@ -140,7 +136,7 @@ const Header = ({ isAdmin }) => {
           {/* Logo */}
           <div className="flex items-center gap-4">
             <img src="https://2cretiv.com/wp-content/uploads/2024/10/WhatsApp-Image-2024-10-14-at-1.54.56-PM-4.jpeg"
-              className="flex h-10 w-20 rounded-full"
+              className="flex h-10 w-40 rounded-full"
               alt="Logo"
               loading="lazy"
               onClick={() => window.location.href = routes.home()}
@@ -181,16 +177,7 @@ const Header = ({ isAdmin }) => {
                     >
                       Update Personal Info
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false)
-                        setShowChangePasswordModal(true)
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
-                    >
-                      Change Password
-                    </button>
+      
                     <button
                       type="button"
                       onClick={logOut}
