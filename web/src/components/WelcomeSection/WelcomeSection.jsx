@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from 'src/auth'
 import Code from '../Code/Code'
 import { useQuery, gql } from '@redwoodjs/web'
+import SplitText from '../../../../src/blocks/TextAnimations/SplitText/SplitText'
 
 const USER_ATTENDANCE_QUERY = gql`
   query UserAttendance($id: Int!) {
@@ -52,26 +53,6 @@ const AttendanceStats = ({ userId }) => {
       <div className="text-gray-600 mb-2">Days Present</div>
       <div className="text-2xl font-bold">{totalHours.toFixed(2)}</div>
       <div className="text-gray-600">Total Hours Worked</div>
-    </div>
-  )
-}
-
-const quotes = [
-  "Success is the sum of small efforts, repeated day in and day out.",
-  "Don’t watch the clock; do what it does. Keep going.",
-  "The secret of getting ahead is getting started.",
-  "It always seems impossible until it’s done.",
-  "Productivity is never an accident.",
-]
-
-function MotivationalQuote() {
-  const [quote, setQuote] = useState(quotes[0])
-  useEffect(() => {
-    setQuote(quotes[Math.floor(Math.random() * quotes.length)])
-  }, [])
-  return (
-    <div className="mt-4 italic text-gray-600 text-center text-sm">
-      “{quote}”
     </div>
   )
 }
@@ -127,45 +108,65 @@ function ProgressBar({ userId, weeklyGoal }) {
   )
 }
 
+// ---- GLOBAL FLAG TO PREVENT MULTIPLE ANIMATIONS ----
+let hasAnimatedWelcome = false
+
 const WelcomeSection = () => {
   const [currentTime, setCurrentTime] = useState("")
-  
+  const [animate, setAnimate] = useState(false)
   const { currentUser } = useAuth()
+
+  useEffect(() => {
+    if (!hasAnimatedWelcome) {
+      setAnimate(false)
+      const timeout = setTimeout(() => {
+        setAnimate(true)
+        hasAnimatedWelcome = true
+      }, 50)
+      return () => clearTimeout(timeout)
+    } else {
+      setAnimate(true)
+    }
+  }, [])
 
   useEffect(() => {
     // Updates the current time every minute
     const updateTime = () => {
       const now = new Date()
-      // Format the date using weekday, year, month, and day.
       const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
       const dateString = now.toLocaleDateString(undefined, options)
-      // Format the time string in 12-hour format with two-digit hours and minutes.
       const timeString = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })
       setCurrentTime(`${dateString} | ${timeString}`)
     }
     updateTime()
-    // Update every 60000ms (1 minute)
     const intervalId = setInterval(updateTime, 60000)
     return () => clearInterval(intervalId)
   }, [])
 
   // Get username from email
-  const Name =
-    currentUser?.name || currentUser?.email || 'User'
-
- 
+  const Name = currentUser?.name || currentUser?.email || 'User'
 
   return (
     <div className="relative z-30 flex flex-col md:flex-row items-start md:items-center justify-between mb-8 mt-32">
+           
       <div>
+       
         <h1 className="text-2xl font-bold text-gray-900">
-          Hello, {Name}!
+          <SplitText
+            text={`Welcome, ${Name}`}
+            className="text-2xl font-bold text-gray-900"
+            delay={500}
+            duration={0.6}
+            ease="bounce.out"
+            splitType="words"
+            from={{ opacity: 0, y: 20 }}
+            to={animate ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            disableScrollTrigger={true}
+          />
         </h1>
         <p className="text-gray-600 mt-1">{currentTime}</p>
       </div>
-      <div className="mt-4 md:mt-0">
-        
-      </div>
+      <div className="mt-4 md:mt-0"></div>
     </div>
   )
 }

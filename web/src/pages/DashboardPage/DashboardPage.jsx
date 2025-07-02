@@ -7,6 +7,8 @@ import UpcomingBookings from 'src/components/UpcomingBookings/UpcomingBookings'
 import AttendanceCard from 'src/components/AttendanceCard/AttendanceCard'
 import Attendance from 'src/components/Attendance/Attendance'
 import React, { useState } from 'react'
+import TextCursor from '../../../../src/blocks/TextAnimations/TextCursor/TextCursor'
+
 import Booking, { BookingForm, BookingDetail } from 'src/components/Booking/Booking'
 import { useQuery, useMutation } from '@redwoodjs/web'
 
@@ -415,10 +417,16 @@ const DashboardPage = () => {
 
   return (
     <>
+   
       <Metadata title="Dashboard" description="Dashboard page" />
       <Header />
-      <main className="pt-10 px-4 md:px-8 lg:px-12">
+  
+      <main className="relative pt-10 px-4 md:px-8 lg:px-12 h-screen">
+     
+            
+         
         <WelcomeSection />
+       
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* Left: Upcoming Bookings (2/3 width on large screens) */}
           <div className="lg:col-span-2">

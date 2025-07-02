@@ -29,6 +29,8 @@
   },
   "dependencies": {
     "@capacitor/core": "^7.4.0",
+    "framer-motion": "^12.6.0",
+    "gsap": "^3.13.0",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "netlify-cli": "^22.2.1",
