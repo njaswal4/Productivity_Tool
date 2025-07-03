@@ -361,7 +361,8 @@ const AdminPanelPage = () => {
           </div>
         </div>
 
-        {/* Office Hours Section */}
+         {/* Office Hours Section */}
+         {/*
         <div className="mt-12 rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-semibold text-gray-800">
             Office Hours
@@ -402,7 +403,7 @@ const AdminPanelPage = () => {
               </div>
             </form>
           )}
-        </div>
+        </div> */}
 
         {/* Meeting Rooms Section */}
         <div className="mt-12">

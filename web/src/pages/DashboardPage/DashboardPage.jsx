@@ -7,8 +7,6 @@ import UpcomingBookings from 'src/components/UpcomingBookings/UpcomingBookings'
 import AttendanceCard from 'src/components/AttendanceCard/AttendanceCard'
 import Attendance from 'src/components/Attendance/Attendance'
 import React, { useState } from 'react'
-import TextCursor from '../../../../src/blocks/TextAnimations/TextCursor/TextCursor'
-
 import Booking, { BookingForm, BookingDetail } from 'src/components/Booking/Booking'
 import { useQuery, useMutation } from '@redwoodjs/web'
 

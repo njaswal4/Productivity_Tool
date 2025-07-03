@@ -2,132 +2,15 @@
 
 import React, { useState, useEffect } from 'react'
 import { useAuth } from 'src/auth'
-import Code from '../Code/Code'
-import { useQuery, gql } from '@redwoodjs/web'
-import SplitText from '../../../../src/blocks/TextAnimations/SplitText/SplitText'
 
-const USER_ATTENDANCE_QUERY = gql`
-  query UserAttendance($id: Int!) {
-    user(id: $id) {
-      attendances {
-        duration
-        status
-        clockIn
-        clockOut
-      }
-    }
-  }
-`
+//import { useQuery, gql } from '@redwoodjs/web'
 
-function parseDuration(durationStr, clockIn, clockOut) {
-  if (durationStr && durationStr !== '-') {
-    const match = durationStr.match(/(\d+)h\s*(\d+)m/)
-    if (!match) return 0
-    return parseInt(match[1], 10) + parseInt(match[2], 10) / 60
-  }
-  if (clockIn && clockOut) {
-    const diffMs = new Date(clockOut) - new Date(clockIn)
-    return diffMs > 0 ? diffMs / 1000 / 60 / 60 : 0
-  }
-  return 0
-}
-
-const AttendanceStats = ({ userId }) => {
-  const { data, loading, error } = useQuery(USER_ATTENDANCE_QUERY, {
-    variables: { id: Number(userId) },
-    skip: !userId,
-  })
-
-  if (loading) return <div>Loading...</div>
-  if (error || !data?.user) return <div>Unable to load stats.</div>
-
-  const records = data.user.attendances || []
-  const totalHours = records.reduce(
-    (sum, att) => sum + parseDuration(att.duration, att.clockIn, att.clockOut), 0
-  )
-  const presentDays = records.filter(a => a.status === 'Present').length
-
-  return (
-    <div className="text-center">
-      <div className="text-2xl font-bold">{presentDays}</div>
-      <div className="text-gray-600 mb-2">Days Present</div>
-      <div className="text-2xl font-bold">{totalHours.toFixed(2)}</div>
-      <div className="text-gray-600">Total Hours Worked</div>
-    </div>
-  )
-}
-
-const WEEKLY_ATTENDANCE_QUERY = gql`
-  query WeeklyAttendance($id: Int!, $start: DateTime!, $end: DateTime!) {
-    user(id: $id) {
-      attendancesInRange(start: $start, end: $end) {
-        duration
-        clockIn
-        clockOut
-      }
-    }
-  }
-`
-
-function getWeekRange() {
-  const now = new Date()
-  const start = new Date(now)
-  start.setDate(now.getDate() - now.getDay() + 1)
-  start.setHours(0,0,0,0)
-  const end = new Date(start)
-  end.setDate(start.getDate() + 6)
-  end.setHours(23,59,59,999)
-  return { start, end }
-}
-
-function ProgressBar({ userId, weeklyGoal }) {
-  const { start, end } = getWeekRange()
-  const { data, loading } = useQuery(WEEKLY_ATTENDANCE_QUERY, {
-    variables: { id: Number(userId), start: start.toISOString(), end: end.toISOString() },
-    skip: !userId,
-  })
-  if (loading) return <div className="w-full h-4 bg-gray-100 rounded mt-4 mb-2" />
-  const records = data?.user?.attendancesInRange || []
-  const totalHours = records.reduce(
-    (sum, att) => sum + parseDuration(att.duration, att.clockIn, att.clockOut), 0
-  )
-  const percent = Math.min(100, (totalHours / weeklyGoal) * 100)
-  return (
-    <div className="w-full mt-4 mb-2">
-      <div className="flex justify-between text-xs mb-1">
-        <span>Weekly Goal: {weeklyGoal}h</span>
-        <span>{totalHours.toFixed(1)}h</span>
-      </div>
-      <div className="w-full bg-gray-200 rounded h-3">
-        <div
-          className="bg-green-500 h-3 rounded"
-          style={{ width: `${percent}%`, transition: 'width 0.5s' }}
-        />
-      </div>
-    </div>
-  )
-}
-
-// ---- GLOBAL FLAG TO PREVENT MULTIPLE ANIMATIONS ----
-let hasAnimatedWelcome = false
 
 const WelcomeSection = () => {
   const [currentTime, setCurrentTime] = useState("")
-  const [animate, setAnimate] = useState(false)
   const { currentUser } = useAuth()
 
-  useEffect(() => {
-    if (!hasAnimatedWelcome) {
-      setAnimate(false)
-      const timeout = setTimeout(() => {
-        setAnimate(true)
-        hasAnimatedWelcome = true
-      }, 50)
-      return () => clearTimeout(timeout)
-    } else {
-      setAnimate(true)
-    }
-  }, [])
+
 
   useEffect(() => {
     // Updates the current time every minute
@@ -152,17 +35,7 @@ const WelcomeSection = () => {
       <div>
        
         <h1 className="text-2xl font-bold text-gray-900">
-          <SplitText
-            text={`Welcome, ${Name}`}
-            className="text-2xl font-bold text-gray-900"
-            delay={500}
-            duration={0.6}
-            ease="bounce.out"
-            splitType="words"
-            from={{ opacity: 0, y: 20 }}
-            to={animate ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            disableScrollTrigger={true}
-          />
+         Welcome, {Name}!
         </h1>
         <p className="text-gray-600 mt-1">{currentTime}</p>
       </div>

@@ -108,13 +108,7 @@ const Attendance = ({ userId }) => {
     }
   }, [exceptionData])
 
-  // Refresh exception section
-  const handleRefresh = async () => {
-    const result = await refetchExceptions()
-    if (result.data?.user?.exceptionRequests) {
-      setExceptionRequests(result.data.user.exceptionRequests)
-    }
-  }
+
 
   // PDF export option
   const exportAttendancePDF = () => {

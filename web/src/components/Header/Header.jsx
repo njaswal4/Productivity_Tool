@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useAuth } from 'src/auth'
 import { Link, routes } from '@redwoodjs/router'
 import { useMutation } from '@redwoodjs/web'
-import SplitText from '../../../../src/blocks/TextAnimations/SplitText/SplitText'
-
 
 const UPDATE_USER_MUTATION = gql`
   mutation UpdateUser($id: Int!, $input: UpdateUserInput!) {
@@ -143,20 +141,7 @@ const Header = ({ isAdmin }) => {
               onClick={() => window.location.href = routes.home()}
             />
             <h2 className="font-bold"> 
-              <SplitText
-             text=" Productivity Tool"
-               className="text-2xl font-semibold text-center"
-               delay={100}
-               duration={0.6}
-               ease="power3.out"
-              splitType="chars"
-              from={{ opacity: 0, y: 40 }}
-              to={{ opacity: 1, y: 0 }}
-              threshold={0.1}
-              rootMargin="-100px"
-              textAlign="center"
-             
-            />
+             Productivity Tool
           </h2>
           </div>
 
