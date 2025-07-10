@@ -13,10 +13,10 @@ const LoginPage = () => {
   }, [isAuthenticated, loading])
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      login() // Automatically start Microsoft login
-    }
-  }, [isAuthenticated, login])
+  if (!loading && !isAuthenticated) {
+    login()
+  }
+}, [isAuthenticated, loading, login])
 
   return (
     <>
