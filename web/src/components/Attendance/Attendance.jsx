@@ -84,7 +84,7 @@ const Attendance = ({ userId }) => {
   const paginatedExceptions = useMemo(() => {
     const sorted = [...exceptionRequests].sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    ).reverse()
+    )
     return sorted.slice(
       (exceptionPage - 1) * itemsPerPage,
       exceptionPage * itemsPerPage
@@ -102,8 +102,8 @@ const Attendance = ({ userId }) => {
   useEffect(() => {
     if (exceptionData?.user?.exceptionRequests) {
       const sorted = [...exceptionData.user.exceptionRequests].sort(
-        (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-      ).reverse()
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      )
       setExceptionRequests(sorted)
     }
   }, [exceptionData])
@@ -482,8 +482,11 @@ const Attendance = ({ userId }) => {
                     {new Date(ex.date).toLocaleDateString('en-GB', {
                       timeZone: 'UTC',
                     })}{' '}
-                    - {ex.reason}
+    
                   </div>
+                  <p className="text-sm text-gray-700 break-words max-w-xs max-h-24 overflow-y-auto">
+                    {ex.reason}
+                  </p>
                 </div>
               ))
             )}

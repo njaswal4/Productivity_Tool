@@ -32,6 +32,13 @@ export const deleteUser = ({ id }) => {
   })
 }
 
+export const updateUserRoles = ({ id, roles }) => {
+  return db.user.update({
+    where: { id },
+    data: { roles },
+  })
+}
+
 export const User = {
   bookings: (_obj, { root }) => {
     return db.user.findUnique({ where: { id: root?.id } }).bookings()

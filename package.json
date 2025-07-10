@@ -28,13 +28,16 @@
     "@storybook/react-dom-shim@npm:7.6.20": "https://verdaccio.tobbe.dev/@storybook/react-dom-shim/-/react-dom-shim-8.0.8.tgz"
   },
   "dependencies": {
+    "@azure/msal-browser": "^4.15.0",
     "@capacitor/core": "^7.4.0",
     "framer-motion": "^12.6.0",
     "gsap": "^3.13.0",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "moment": "^2.30.1",
     "netlify-cli": "^22.2.1",
     "papaparse": "^5.5.3",
+    "react-big-calendar": "^1.19.4",
     "react-calendar": "^6.0.0",
     "react-icons": "^5.5.0",
     "semver": "^7.7.2"

@@ -1,8 +1,14 @@
 export const schema = gql`
+  enum Role {
+    USER
+    ADMIN
+  }
+
   type User {
     id: Int!
     name: String!
     email: String!
+    roles: [Role!]!
     bookings: [Booking]!
     exceptionRequests: [ExceptionRequest!]!
     attendancesInRange(start: DateTime!, end: DateTime!): [Attendance!]!
@@ -14,6 +20,7 @@ export const schema = gql`
     name: String
     email: String
     selectedMeetingRoomId: Int
+    roles: [Role!]
   }
 
   type Query {
@@ -25,10 +32,12 @@ export const schema = gql`
     createUser(input: CreateUserInput!): User! @requireAuth
     updateUser(id: Int!, input: UpdateUserInput!): User! @requireAuth
     deleteUser(id: Int!): User! @requireAuth
+    updateUserRoles(id: Int!, roles: [Role!]!): User! @requireAuth(roles: ["ADMIN"])
   }
 
   input CreateUserInput {
     name: String!
     email: String!
+    roles: [Role!]
   }
 `

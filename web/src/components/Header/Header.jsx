@@ -3,6 +3,7 @@ import { useAuth } from 'src/auth'
 import { Link, routes } from '@redwoodjs/router'
 import { useMutation } from '@redwoodjs/web'
 
+
 const UPDATE_USER_MUTATION = gql`
   mutation UpdateUser($id: Int!, $input: UpdateUserInput!) {
     updateUser(id: $id, input: $input) {
@@ -14,7 +15,7 @@ const UPDATE_USER_MUTATION = gql`
 `
 
 const Header = ({ isAdmin }) => {
-  const { isAuthenticated, currentUser, logOut } = useAuth()
+  const { isAuthenticated, currentUser, logOut, hasRole } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -147,56 +148,7 @@ const Header = ({ isAdmin }) => {
 
           {/* Auth/User Section */}
           <div className="flex items-center gap-4 relative">
-            {isAuthenticated ? (
-              <div className="relative" ref={menuRef}>
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen((open) => !open)}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-black hover:bg-orange-200 focus:outline-none"
-                  aria-label="Account"
-                >
-                  <p className="text-white text-4xl">🧑‍💻</p>
-                  <i className="ri-account-circle-line text-3xl text-primary"></i>
-                </button>
-                {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <div className="text-xs text-gray-500 mb-1">Logged in as:</div>
-                      <div className="font-semibold text-gray-800 truncate">{currentUser.email}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false)
-                        setShowProfileModal(true)
-                        setProfileForm({
-                          name: currentUser?.name || '',
-                          email: currentUser?.email || '',
-                        })
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
-                    >
-                      Update Personal Info
-                    </button>
-      
-                    <button
-                      type="button"
-                      onClick={logOut}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-b-lg transition"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                to={routes.login()}
-                className="px-3 py-1 bg-primary text-white rounded hover:bg-primary-dark transition"
-              >
-                Login
-              </Link>
-            )}
+            <LoginButton />
           </div>
         </div>
         <nav className="flex border-t border-gray-200">
@@ -229,16 +181,26 @@ const Header = ({ isAdmin }) => {
             </div>
             <span className="mt-1 block">Attendance</span>
           </a>
-          {isAdmin && (
-            <a
-              href="/admin"
+          <a
+            href="#vacation-section"
+            onClick={handleScroll('vacation-section')}
+            className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
+          >
+            <div className="w-5 h-5 mx-auto flex items-center justify-center">
+              <i className="ri-calendar-event-line"></i>
+            </div>
+            <span className="mt-1 block">Vacation</span>
+          </a>
+          {hasRole && hasRole('ADMIN') && (
+            <Link
+              to={routes.adminPanel()}
               className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
             >
               <div className="w-5 h-5 mx-auto flex items-center justify-center">
                 <i className="ri-admin-line"></i>
               </div>
               <span className="mt-1 block">Admin Panel</span>
-            </a>
+            </Link>
           )}
         </nav>
       </header>

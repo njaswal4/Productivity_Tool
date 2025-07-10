@@ -9,6 +9,7 @@ import Attendance from 'src/components/Attendance/Attendance'
 import React, { useState } from 'react'
 import Booking, { BookingForm, BookingDetail } from 'src/components/Booking/Booking'
 import { useQuery, useMutation } from '@redwoodjs/web'
+import VacationPlanner from 'src/components/VacationPlanner/VacationPlanner'
 
 const CLOCK_IN_MUTATION = gql`
   mutation ClockIn($userId: Int!, $date: DateTime!, $clockIn: DateTime!) {
@@ -455,6 +456,10 @@ const DashboardPage = () => {
         </div>
         <div id="bookings-section" className="mt-8">
           <BookingForm userName={userName} refetchBookings={refetch} />
+        </div>
+        {/* Add the vacation planner section */}
+        <div id="vacation-section" className="mb-8">
+          <VacationPlanner />
         </div>
       </main>
     </>

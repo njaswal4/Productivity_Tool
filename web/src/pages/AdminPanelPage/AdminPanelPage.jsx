@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Metadata, useQuery, useMutation } from '@redwoodjs/web'
 import MeetingRoomsSection from './MeetingRoomsSection'
+import AdminVacationManager from 'src/components/AdminVacationManager/AdminVacationManager'
 
 const EXCEPTION_REQUESTS_QUERY = gql`
   query ExceptionRequests {
@@ -23,6 +24,7 @@ const ALL_USERS_ATTENDANCE_QUERY = gql`
     users {
       id
       name
+      roles  
       attendances {
         id
         duration
@@ -71,6 +73,15 @@ const UPDATE_OFFICE_HOURS = gql`
   }
 `
 
+const UPDATE_USER_ROLES = gql`
+  mutation UpdateUserRoles($id: Int!, $roles: [Role!]!) {
+    updateUserRoles(id: $id, roles: $roles) {
+      id
+      roles
+    }
+  }
+`
+
 const AdminPanelPage = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
@@ -106,12 +117,24 @@ const AdminPanelPage = () => {
     onCompleted: () => refetchOfficeHours(),
   })
 
+  const [updateUserRoles] = useMutation(UPDATE_USER_ROLES, {
+    onCompleted: () => refetchUsers(),
+  })
+
   const officeHours = officeHoursData?.officeHours || { startTime: '09:00', endTime: '18:00' }
   const [startTime, setStartTime] = useState(officeHours.startTime)
   const [endTime, setEndTime] = useState(officeHours.endTime)
 
   const handleSave = () => {
     updateOfficeHours({ variables: { id: officeHours.id, input: { startTime, endTime } } })
+  }
+
+  const handleRoleChange = (user, role) => {
+    const hasRole = user.roles.includes(role)
+    const newRoles = hasRole
+      ? user.roles.filter((r) => r !== role)
+      : [...user.roles, role]
+    updateUserRoles({ variables: { id: user.id, roles: newRoles } })
   }
 
   const [exceptionPage, setExceptionPage] = useState(1)
@@ -230,15 +253,31 @@ const AdminPanelPage = () => {
                       className="flex items-center justify-between bg-gray-50 rounded-lg shadow-sm p-4 border border-gray-100"
                     >
                       <span className="text-gray-900 font-medium">{user.name}</span>
-                      <button
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs font-semibold transition"
-                        onClick={() => {
-                          setUserToDelete(user)
-                          setShowDeleteDialog(true)
-                        }}
-                      >
-                        Delete
-                      </button>
+                      <div className="flex gap-2 items-center">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={user.roles.includes('ADMIN')}
+                            onChange={() => handleRoleChange(user, 'ADMIN')}
+                          /> Admin
+                        </label>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={user.roles.includes('USER')}
+                            onChange={() => handleRoleChange(user, 'USER')}
+                          /> User
+                        </label>
+                        <button
+                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs font-semibold transition"
+                          onClick={() => {
+                            setUserToDelete(user)
+                            setShowDeleteDialog(true)
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -318,7 +357,7 @@ const AdminPanelPage = () => {
                           </>
                         ) : null}
                       </div>
-                      <p className="text-sm text-gray-700">{form.reason}</p>
+                      <p className="text-sm text-gray-700 break-words max-w-xs max-h-24 overflow-y-auto">{form.reason}</p>
                       <div className="flex justify-end gap-2 mt-4">
                         <button
                           className="px-3 py-1 bg-green-500 text-white rounded text-xs font-semibold hover:bg-green-600 transition"
@@ -411,6 +450,11 @@ const AdminPanelPage = () => {
             key={meetingRoomsKey}
             onChanged={handleMeetingRoomsChanged}
           />
+        </div>
+
+        {/* Vacation Management Section */}
+        <div className="mt-8">
+          <AdminVacationManager />
         </div>
       </div>
     </>

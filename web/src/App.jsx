@@ -1,21 +1,22 @@
 import { FatalErrorBoundary, RedwoodProvider } from '@redwoodjs/web'
 import { RedwoodApolloProvider } from '@redwoodjs/web/apollo'
+
 import FatalErrorPage from 'src/pages/FatalErrorPage'
-import { AuthProvider, useAuth } from './auth'
+import Routes from 'src/Routes'
+
+import { AuthProvider } from 'src/auth'
+import { Toaster } from '@redwoodjs/web/toast'
 
 import './index.css'
-import './scaffold.css'
 
-
-const App = ({ children }) => (
+const App = () => (
   <FatalErrorBoundary page={FatalErrorPage}>
     <RedwoodProvider titleTemplate="%PageTitle | %AppTitle">
       <AuthProvider>
-        <RedwoodApolloProvider useAuth={useAuth}>
-           {/* Global cursor effect, covers the whole viewport */}
-     
-          {children}
-          </RedwoodApolloProvider>
+        <RedwoodApolloProvider>
+          <Toaster toastOptions={{ duration: 6000 }} />
+          <Routes />
+        </RedwoodApolloProvider>
       </AuthProvider>
     </RedwoodProvider>
   </FatalErrorBoundary>
