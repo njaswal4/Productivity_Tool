@@ -2,12 +2,12 @@ export const msalConfig = {
   auth: {
     clientId: '8194034c-caac-441d-b9f8-fb7b23606bc9', 
     authority: 'https://login.microsoftonline.com/bbc8bba7-e3e4-4307-941b-0eef3af2f9b3', 
-    redirectUri: 'https://2creativeapp.netlify.app/', 
-    postLogoutRedirectUri: 'https://2creativeapp.netlify.app/', 
+    redirectUri: 'https://ietxptztlrlbcnjdjicc.supabase.co/auth/v1/callback', 
+    postLogoutRedirectUri: 'http://localhost:8910/login', 
   },
   cache: {
     cacheLocation: 'localStorage',
-    storeAuthStateInCookie: false,
+    storeAuthStateInCookie: true,
   },
 }
 
@@ -18,3 +18,4 @@ export const loginRequest = {
 
 
 export const allowedDomains = ['2cretiv.com']
+

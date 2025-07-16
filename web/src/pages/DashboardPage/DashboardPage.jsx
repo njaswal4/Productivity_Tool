@@ -11,6 +11,7 @@ import Booking, { BookingForm, BookingDetail } from 'src/components/Booking/Book
 import { useQuery, useMutation } from '@redwoodjs/web'
 import VacationPlanner from 'src/components/VacationPlanner/VacationPlanner'
 
+
 const CLOCK_IN_MUTATION = gql`
   mutation ClockIn($userId: Int!, $date: DateTime!, $clockIn: DateTime!) {
     createAttendance(input: {
@@ -106,10 +107,15 @@ const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
   return d.toISOString().slice(0, 10)
 })
 
+
+
 const DashboardPage = () => {
   const { currentUser } = useAuth()
+  if (!currentUser) {
+    return <div>Loading...</div>
+  }
   const userId = currentUser.id
-  const [userName, setUserName] = useState('')
+  const [userName, setUserName] = React.useState('')
 
   // For bookings and other attendance data
   const { data, loading, error, refetch } = useQuery(BOOKINGS_QUERY, {

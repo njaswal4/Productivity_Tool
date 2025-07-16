@@ -1,5 +1,10 @@
-import { createDbAuthClient, createAuth } from '@redwoodjs/auth-dbauth-web'
+import { createClient } from '@supabase/supabase-js'
 
-const dbAuthClient = createDbAuthClient()
+import { createAuth } from '@redwoodjs/auth-supabase-web'
 
-export const { AuthProvider, useAuth } = createAuth(dbAuthClient)
+const supabaseClient = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_KEY || ''
+)
+
+export const { AuthProvider, useAuth } = createAuth(supabaseClient)
