@@ -5,8 +5,6 @@ import { useAuth } from 'src/auth'
 // Layouts
 import ScaffoldLayout from 'src/layouts/ScaffoldLayout'
 
-import { useAuth } from './auth'
-
 
 
 const Routes = () => {

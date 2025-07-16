@@ -1,24 +1,24 @@
 import { FatalErrorBoundary, RedwoodProvider } from '@redwoodjs/web'
-import { ApolloProvider } from '@apollo/client'
+import { RedwoodApolloProvider } from '@redwoodjs/web/apollo'
 
 import FatalErrorPage from 'src/pages/FatalErrorPage'
-import Routes from 'src/Routes'
 
-import { AuthProvider } from './auth/index'
-import { Toaster } from '@redwoodjs/web/toast'
-
-import client from 'src/lib/apolloClient'
+import { AuthProvider, useAuth } from './auth'
 
 import './index.css'
+import './scaffold.css'
 
-const App = () => (
+
+const App = ({ children }) => (
   <FatalErrorBoundary page={FatalErrorPage}>
     <RedwoodProvider titleTemplate="%PageTitle | %AppTitle">
       <AuthProvider>
-        <ApolloProvider client={client}>
-          <Toaster toastOptions={{ duration: 6000 }} />
-          <Routes />
-        </ApolloProvider>
+        <RedwoodApolloProvider
+          useAuth={useAuth}
+          clientOptions={{ credentials: 'include' }}
+        >
+          {children}
+        </RedwoodApolloProvider>
       </AuthProvider>
     </RedwoodProvider>
   </FatalErrorBoundary>
