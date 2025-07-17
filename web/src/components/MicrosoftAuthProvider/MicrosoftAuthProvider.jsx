@@ -10,8 +10,14 @@ export const MicrosoftAuthProvider = ({ children }) => {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession()
+      const { data, error } = await supabase.auth.getSession()
+      const session = data?.session
+
       if (error) console.error('Error fetching session:', error)
+
+      console.log('Session:', session)
+      console.log('User:', session?.user)
+      console.log('Access Token:', session?.provider_token)
 
       setUser(session?.user ?? null)
       setAccessToken(session?.provider_token ?? null)
@@ -21,6 +27,7 @@ export const MicrosoftAuthProvider = ({ children }) => {
     getSession()
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth state changed:', session)
       setUser(session?.user ?? null)
       setAccessToken(session?.provider_token ?? null)
       setLoading(false)
@@ -55,6 +62,7 @@ export const MicrosoftAuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider
       value={{
+        currentUser: user, // for Redwood compatibility
         user,
         accessToken,
         login,

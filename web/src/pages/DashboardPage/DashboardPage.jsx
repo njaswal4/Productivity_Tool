@@ -11,6 +11,7 @@ import React, { useEffect } from 'react'
 import Booking, { BookingForm, BookingDetail } from 'src/components/Booking/Booking'
 import { useQuery, useMutation } from '@redwoodjs/web'
 import VacationPlanner from 'src/components/VacationPlanner/VacationPlanner'
+import { useMicrosoftAuth } from 'src/components/MicrosoftAuthProvider/MicrosoftAuthProvider'
 
 
 const CLOCK_IN_MUTATION = gql`
@@ -111,7 +112,7 @@ const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
 
 
 const DashboardPage = () => {
-const { currentUser, loading: authLoading, accessToken } = useAuth()
+const { currentUser, loading: authLoading, accessToken } = useMicrosoftAuth()
 
 useEffect(() => {
   if (currentUser?.name) {
