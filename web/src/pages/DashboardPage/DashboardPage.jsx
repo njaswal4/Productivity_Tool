@@ -1,4 +1,5 @@
 import { Link, routes } from '@redwoodjs/router'
+import { navigate } from '@redwoodjs/router'
 import Header from 'src/components/Header/Header'
 import { useAuth } from 'src/auth'
 import { Metadata } from '@redwoodjs/web'
@@ -6,7 +7,7 @@ import WelcomeSection from 'src/components/WelcomeSection/WelcomeSection'
 import UpcomingBookings from 'src/components/UpcomingBookings/UpcomingBookings'
 import AttendanceCard from 'src/components/AttendanceCard/AttendanceCard'
 import Attendance from 'src/components/Attendance/Attendance'
-import React, { useState } from 'react'
+import React, { useEffect } from 'react'
 import Booking, { BookingForm, BookingDetail } from 'src/components/Booking/Booking'
 import { useQuery, useMutation } from '@redwoodjs/web'
 import VacationPlanner from 'src/components/VacationPlanner/VacationPlanner'
@@ -110,11 +111,19 @@ const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
 
 
 const DashboardPage = () => {
-  const { currentUser } = useAuth()
-  if (!currentUser) {
-    return <div>Loading...</div>
+const { currentUser, loading: authLoading, accessToken } = useAuth()
+
+useEffect(() => {
+  if (currentUser?.name) {
+    setUserName(currentUser.name)
   }
-  const userId = currentUser.id
+}, [currentUser?.name])
+
+if (authLoading || !currentUser) {
+  return <div>Loading...</div>
+}
+
+const userId = currentUser.id
   const [userName, setUserName] = React.useState('')
 
   // For bookings and other attendance data

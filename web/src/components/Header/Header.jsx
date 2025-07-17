@@ -4,6 +4,7 @@ import { Link, routes } from '@redwoodjs/router'
 import { useMutation } from '@redwoodjs/web'
 
 
+
 const UPDATE_USER_MUTATION = gql`
   mutation UpdateUser($id: Int!, $input: UpdateUserInput!) {
     updateUser(id: $id, input: $input) {
@@ -148,8 +149,26 @@ const Header = ({ isAdmin }) => {
 
           {/* Auth/User Section */}
           <div className="flex items-center gap-4 relative">
-            <LoginButton />
-          </div>
+  {isAuthenticated ? (
+    <>
+      <span className="text-sm font-medium">{currentUser?.email}</span>
+      <button
+        onClick={logOut}
+        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+      >
+        Logout
+      </button>
+    </>
+  ) : (
+    <Link
+      to={routes.login()}
+      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+    >
+      Login
+    </Link>
+  )}
+</div>
+
         </div>
         <nav className="flex border-t border-gray-200">
           <a

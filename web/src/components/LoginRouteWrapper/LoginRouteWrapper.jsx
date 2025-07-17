@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useAuth } from '../../auth/index'
+import { useAuth } from 'src/auth'
 import { navigate, routes } from '@redwoodjs/router'
 
 const LoginRouteWrapper = ({ children }) => {

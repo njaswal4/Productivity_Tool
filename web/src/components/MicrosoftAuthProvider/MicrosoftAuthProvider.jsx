@@ -5,25 +5,40 @@ const AuthContext = createContext()
 
 export const MicrosoftAuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [accessToken, setAccessToken] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const session = supabase.auth.session()
-    setUser(session?.user ?? null)
+    const getSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) console.error('Error fetching session:', error)
+
+      setUser(session?.user ?? null)
+      setAccessToken(session?.provider_token ?? null)
+      setLoading(false)
+    }
+
+    getSession()
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      setAccessToken(session?.provider_token ?? null)
+      setLoading(false)
     })
 
     return () => {
-      authListener?.unsubscribe()
+      authListener?.subscription?.unsubscribe?.()
     }
   }, [])
 
   const login = async () => {
-    const { error } = await supabase.auth.signIn(
-      { provider: 'azure' },
-      { redirectTo: window.location.origin }
-    )
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {
+        scopes: ['email', 'profile', 'openid', 'User.Read', 'offline_access'],
+        redirectTo: 'https://ietxptztlrlbcnjdjicc.supabase.co/auth/v1/callback',
+      },
+    })
     if (error) throw error
   }
 
@@ -33,17 +48,25 @@ export const MicrosoftAuthProvider = ({ children }) => {
   }
 
   const isAuthorized = () => {
-    if (!user) return false
+    if (!user?.email) return false
     return user.email.endsWith('@2cretiv.com')
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthorized, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        accessToken,
+        login,
+        logout,
+        isAuthorized,
+        isAuthenticated: !!user,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
 }
 
-export const useMicrosoftAuth = () => {
-  return useContext(AuthContext)
-}
+export const useMicrosoftAuth = () => useContext(AuthContext)

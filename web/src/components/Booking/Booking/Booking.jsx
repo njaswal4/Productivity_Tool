@@ -37,7 +37,7 @@ export const BookingForm = ({ refetchBookings }) => {
   const [createBooking] = useMutation(CREATE_BOOKING)
   const [selectRoomId, setSelectedRoomId] = useState('')
   const { data: bookingsData, refetch: refetchBookingsData } = useQuery(BOOKINGS_QUERY, {
-    variables: { userId: currentUser.id },
+    variables: { userId: currentUser?.id },
   })
 
   const slots = [
