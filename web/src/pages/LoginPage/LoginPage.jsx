@@ -1,58 +1,131 @@
-import { useEffect } from 'react'
-import { Redirect, routes } from '@redwoodjs/router'
-import { MetaTags }         from '@redwoodjs/web'
-import { useAuth }          from 'src/auth'
+import { useEffect, useRef } from 'react'
+
+import {
+  Form,
+  Label,
+  TextField,
+  PasswordField,
+  Submit,
+  FieldError,
+} from '@redwoodjs/forms'
+import { Link, navigate, routes } from '@redwoodjs/router'
+import { Metadata } from '@redwoodjs/web'
+import { toast, Toaster } from '@redwoodjs/web/toast'
+
+import { useAuth } from 'src/auth'
 
 const LoginPage = () => {
-  const { isAuthenticated, loading, login } = useAuth()
+  const { isAuthenticated, logIn } = useAuth()
 
-  // 1) If auth is still initializing, show nothing or a spinner
-  if (loading) {
-    return <div>Loading authentication…</div>
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(routes.home())
+    }
+  }, [isAuthenticated])
+
+  const usernameRef = useRef(null)
+  useEffect(() => {
+    usernameRef.current?.focus()
+  }, [])
+
+  const onSubmit = async (data) => {
+    const response = await logIn({
+      username: data.username,
+      password: data.password,
+    })
+
+    if (response.message) {
+      toast(response.message)
+    } else if (response.error) {
+      toast.error(response.error)
+    } else {
+      toast.success('Welcome back!')
+    }
   }
 
-  // 2) Once loading is false, if we’re already logged in, navigate away
-  if (isAuthenticated) {
-    return <Redirect to={routes.home()} />
-  }
-
-  // 3) Otherwise, render the login UI
   return (
     <>
-      <MetaTags title="Login" description="Login page" />
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md space-y-8">
-          <div className="text-center">
-            <img
-              src="https://2cretiv.com/wp-content/uploads/2024/10/WhatsApp-Image-2024-10-14-at-1.54.56-PM-4.jpeg"
-              className="mx-auto h-20"
-              alt="2Creative Logo"
-            />
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-              Productivity Tool
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Sign in with your Microsoft 2Creative account
-            </p>
+      <Metadata title="Login" />
+
+      <main className="rw-main">
+        <Toaster toastOptions={{ className: 'rw-toast', duration: 6000 }} />
+        <div className="rw-scaffold rw-login-container">
+          <div className="rw-segment">
+            <header className="rw-segment-header">
+              <h2 className="rw-heading rw-heading-secondary">Login</h2>
+            </header>
+
+            <div className="rw-segment-main">
+              <div className="rw-form-wrapper">
+                <Form onSubmit={onSubmit} className="rw-form-wrapper">
+                  <Label
+                    name="username"
+                    className="rw-label"
+                    errorClassName="rw-label rw-label-error"
+                  >
+                    Email
+                  </Label>
+                  <TextField
+                    name="username"
+                    className="rw-input"
+                    errorClassName="rw-input rw-input-error"
+                    ref={usernameRef}
+                    validation={{
+                      required: {
+                        value: true,
+                        message: 'Email is required',
+                      },
+                    }}
+                  />
+
+                  <FieldError name="username" className="rw-field-error" />
+
+                  <Label
+                    name="password"
+                    className="rw-label"
+                    errorClassName="rw-label rw-label-error"
+                  >
+                    Password
+                  </Label>
+                  <PasswordField
+                    name="password"
+                    className="rw-input"
+                    errorClassName="rw-input rw-input-error"
+                    autoComplete="current-password"
+                    validation={{
+                      required: {
+                        value: true,
+                        message: 'Password is required',
+                      },
+                    }}
+                  />
+
+                  <div className="rw-forgot-link">
+                    <Link
+                      to={routes.forgotPassword()}
+                      className="rw-forgot-link"
+                    >
+                      Forgot Password?
+                    </Link>
+                  </div>
+
+                  <FieldError name="password" className="rw-field-error" />
+
+                  <div className="rw-button-group">
+                    <Submit className="rw-button rw-button-blue">Login</Submit>
+                  </div>
+                </Form>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={login}
-            disabled={loading}
-            className={`flex w-full items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-white ${
-              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-            }`}
-          >
-            {/* Microsoft icon */}
-            <svg className="mr-2 h-5 w-5" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10 0H0V10H10V0Z" fill="#F25022"/>
-              <path d="M21 0H11V10H21V0Z" fill="#7FBA00"/>
-              <path d="M10 11H0V21H10V11Z" fill="#00A4EF"/>
-              <path d="M21 11H11V21H21V11Z" fill="#FFB900"/>
-            </svg>
-            Sign in with Microsoft
-          </button>
+          <div className="rw-login-link">
+            <span>Don&apos;t have an account?</span>{' '}
+            <Link to={routes.signup()} className="rw-link">
+              Sign up!
+            </Link>
+          </div>
         </div>
-      </div>
+      </main>
     </>
   )
 }

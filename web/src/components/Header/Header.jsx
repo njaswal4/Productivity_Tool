@@ -149,26 +149,57 @@ const Header = ({ isAdmin }) => {
 
           {/* Auth/User Section */}
           <div className="flex items-center gap-4 relative">
-  {isAuthenticated ? (
-    <>
-      <span className="text-sm font-medium">{currentUser?.email}</span>
-      <button
-        onClick={logOut}
-        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-      >
-        Logout
-      </button>
-    </>
-  ) : (
-    <Link
-      to={routes.login()}
-      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-    >
-      Login
-    </Link>
-  )}
-</div>
-
+            {isAuthenticated ? (
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((open) => !open)}
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-black hover:bg-orange-200 focus:outline-none"
+                  aria-label="Account"
+                >
+                  <p className="text-white text-4xl">🧑‍💻</p>
+                  <i className="ri-account-circle-line text-3xl text-primary"></i>
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="text-xs text-gray-500 mb-1">Logged in as:</div>
+                      <div className="font-semibold text-gray-800 truncate">{currentUser.email}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        setShowProfileModal(true)
+                        setProfileForm({
+                          name: currentUser?.name || '',
+                          email: currentUser?.email || '',
+                        })
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                    >
+                      Update Personal Info
+                    </button>
+      
+                    <button
+                      type="button"
+                      onClick={logOut}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-b-lg transition"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                to={routes.login()}
+                className="px-3 py-1 bg-primary text-white rounded hover:bg-primary-dark transition"
+              >
+                Login
+              </Link>
+            )}
+          </div>
         </div>
         <nav className="flex border-t border-gray-200">
           <a

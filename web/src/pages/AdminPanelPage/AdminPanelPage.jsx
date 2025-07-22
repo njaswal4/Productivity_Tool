@@ -20,7 +20,7 @@ const EXCEPTION_REQUESTS_QUERY = gql`
 `
 
 const ALL_USERS_ATTENDANCE_QUERY = gql`
-  query {
+  query AllUsersAttendance {
     users {
       id
       name
@@ -56,7 +56,7 @@ const UPDATE_EXCEPTION_REQUEST = gql`
 
 const OFFICE_HOURS_QUERY = gql`
   query OfficeHours {
-    officeHours {
+    officeHourses {
       id
       startTime
       endTime

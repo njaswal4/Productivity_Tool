@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useAuth } from 'src/auth'
+import { useAuth } from  'src/auth'
+
 import { useMutation, useQuery } from '@redwoodjs/web'
 import { toast, Toaster } from '@redwoodjs/web/toast'
 import FormModal from 'src/components/FormModal/FormModal'

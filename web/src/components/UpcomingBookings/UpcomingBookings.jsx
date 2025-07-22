@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@redwoodjs/web'
 
+
+
 const BOOKINGS_QUERY = gql`
   query UpcomingBookingsQuery($userId: Int!) {
     bookings(userId: $userId) {

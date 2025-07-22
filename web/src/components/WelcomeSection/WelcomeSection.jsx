@@ -1,14 +1,12 @@
 // src/components/WelcomeSection/WelcomeSection.js
 
 import React, { useState, useEffect } from 'react'
+import { useQuery, gql } from '@redwoodjs/web'
 import { useAuth } from 'src/auth'
-
-//import { useQuery, gql } from '@redwoodjs/web'
-
 
 const WelcomeSection = () => {
   const [currentTime, setCurrentTime] = useState("")
-  const { currentUser } = useAuth()
+  const { currentUser} = useAuth()
 
 
 

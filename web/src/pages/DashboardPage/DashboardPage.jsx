@@ -1,5 +1,4 @@
 import { Link, routes } from '@redwoodjs/router'
-import { navigate } from '@redwoodjs/router'
 import Header from 'src/components/Header/Header'
 import { useAuth } from 'src/auth'
 import { Metadata } from '@redwoodjs/web'
@@ -7,12 +6,10 @@ import WelcomeSection from 'src/components/WelcomeSection/WelcomeSection'
 import UpcomingBookings from 'src/components/UpcomingBookings/UpcomingBookings'
 import AttendanceCard from 'src/components/AttendanceCard/AttendanceCard'
 import Attendance from 'src/components/Attendance/Attendance'
-import React, { useEffect } from 'react'
+import React, { useState } from 'react'
 import Booking, { BookingForm, BookingDetail } from 'src/components/Booking/Booking'
 import { useQuery, useMutation } from '@redwoodjs/web'
 import VacationPlanner from 'src/components/VacationPlanner/VacationPlanner'
-import { useMicrosoftAuth } from 'src/components/MicrosoftAuthProvider/MicrosoftAuthProvider'
-
 
 const CLOCK_IN_MUTATION = gql`
   mutation ClockIn($userId: Int!, $date: DateTime!, $clockIn: DateTime!) {
@@ -56,12 +53,13 @@ const BOOKINGS_QUERY = gql`
   query DashboardBookingsQuery($userId: Int!) {
     bookings(userId: $userId) {
       id
-      clockIn
-      clockOut
-      status
-      duration
-      location
-      date
+      title
+      notes
+      startTime
+      endTime
+      userId
+      meetingRoomId
+      createdAt
     }
   }
 `
@@ -109,23 +107,10 @@ const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
   return d.toISOString().slice(0, 10)
 })
 
-
-
 const DashboardPage = () => {
-const { currentUser, loading: authLoading, accessToken } = useMicrosoftAuth()
-
-useEffect(() => {
-  if (currentUser?.name) {
-    setUserName(currentUser.name)
-  }
-}, [currentUser?.name])
-
-if (authLoading || !currentUser) {
-  return <div>Loading...</div>
-}
-
-const userId = currentUser.id
-  const [userName, setUserName] = React.useState('')
+  const { currentUser } = useAuth()
+  const userId = currentUser.id
+  const [userName, setUserName] = useState('')
 
   // For bookings and other attendance data
   const { data, loading, error, refetch } = useQuery(BOOKINGS_QUERY, {
@@ -271,16 +256,15 @@ const userId = currentUser.id
     }
   `
 
-  const GET_OFFICE_HOURS_QUERY = gql`
-    query GetOfficeHours {
-      officeHourses {
-        id
-        startTime
-        endTime
-        requiredHours
-      }
+const GET_OFFICE_HOURS_QUERY = gql`
+  query GetOfficeHours {
+    officeHourses {
+      id
+      startTime
+      endTime
     }
-  `
+  }
+`
 
   const { data: breaksData, refetch: refetchBreaks } = useQuery(GET_BREAKS_QUERY, {
     variables: { attendanceId: todayAttendance?.id },

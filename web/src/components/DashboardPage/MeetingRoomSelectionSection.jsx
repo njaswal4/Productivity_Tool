@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@redwoodjs/web'
 
-const GET_MEETING_ROOMS = gql`
-  query GetMeetingRooms {
+const GET_MEETING_ROOMS_WITH_DESCRIPTION = gql`
+  query GetMeetingRoomsWithDescription {
     meetingRooms {
       id
       name
@@ -37,7 +37,7 @@ const UPDATE_USER_MEETING_ROOM = gql`
 `
 
 const MeetingRoomSelectionSection = ({ userId }) => {
-  const { data: roomsData, loading: roomsLoading, error: roomsError } = useQuery(GET_MEETING_ROOMS)
+  const { data: roomsData, loading: roomsLoading, error: roomsError } = useQuery(GET_MEETING_ROOMS_WITH_DESCRIPTION)
   const { data: userData, loading: userLoading, error: userError, refetch: refetchUser } = useQuery(GET_USER_MEETING_ROOM, {
     variables: { userId },
   })

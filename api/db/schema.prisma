@@ -25,7 +25,10 @@ model User {
   id                  Int                  @id @default(autoincrement())
   name                String?
   email               String   @unique
-  microsoftId String? @unique
+  hashedPassword      String   @default("")
+  salt                String   @default("")
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
   bookings            Booking[]
   attendances         Attendance[]
   exceptionRequests   ExceptionRequest[]

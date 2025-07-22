@@ -18,6 +18,7 @@ type MeetingRoom {
 }
   type Query {
     bookings(userId: Int): [Booking!]! @requireAuth
+    booking(id: Int!): Booking @requireAuth
   }
 
   input CreateBookingInput {

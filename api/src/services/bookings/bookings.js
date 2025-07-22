@@ -1,14 +1,15 @@
 import { db } from 'src/lib/db'
+import { AuthenticationError } from '@redwoodjs/graphql-server'
 
-export const bookings = ({ userId }) => {
-  if (userId) {
-    return db.booking.findMany({
-      where: { userId },
-      orderBy: { startTime: 'asc' },
-      include: { user: true, meetingRoom: true },
-    })
+export const bookings = ({ userId }, { context }) => {
+  const resolvedUserId = userId || context.currentUser?.id
+
+  if (!resolvedUserId) {
+    throw new AuthenticationError('You must be logged in to view bookings.')
   }
+
   return db.booking.findMany({
+    where: { userId: resolvedUserId },
     orderBy: { startTime: 'asc' },
     include: { user: true, meetingRoom: true },
   })
@@ -27,9 +28,11 @@ export const createBooking = async ({ input }) => {
       endTime: { gt: input.startTime },
     },
   })
+
   if (overlap) {
     throw new Error('Time slot already booked.')
   }
+
   return db.booking.create({ data: input })
 }
 
