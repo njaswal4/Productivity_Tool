@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useMicrosoftAuth } from 'src/components/MicrosoftAuthProvider/MicrosoftAuthProvider'
+//import { useMicrosoftAuth } from 'src/components/MicrosoftAuthProvider/MicrosoftAuthProvider'
 import { navigate, routes } from '@redwoodjs/router'
 
 const AuthRedirectPage = () => {
