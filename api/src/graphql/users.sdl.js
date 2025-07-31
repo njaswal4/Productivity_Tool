@@ -4,6 +4,34 @@ export const schema = gql`
     ADMIN
   }
 
+  enum Department {
+    ENGINEERING
+    DESIGN
+    MARKETING
+    SALES
+    HR
+    FINANCE
+    OPERATIONS
+    CUSTOMER_SUCCESS
+    PRODUCT
+    LEGAL
+  }
+
+  enum Designation {
+    JUNIOR_DEVELOPER
+    SENIOR_DEVELOPER
+    LEAD_DEVELOPER
+    ARCHITECT
+    DESIGNER
+    SENIOR_DESIGNER
+    MARKETING_SPECIALIST
+    SALES_REPRESENTATIVE
+    HR_SPECIALIST
+    ACCOUNTANT
+    PROJECT_MANAGER
+    PRODUCT_MANAGER
+  }
+
   type User {
     id: Int!
     email: String!
@@ -19,6 +47,19 @@ export const schema = gql`
     selectedMeetingRoom: MeetingRoom
     assetAssignments: [AssetAssignment!]!
     vacationRequests: [VacationRequest!]!
+    
+    # Employee Management Fields
+    employeeId: String
+    department: Department
+    designation: Designation
+    dateOfJoining: DateTime
+    reportingManagerId: Int
+    reportingManagerUser: User
+    directReports: [User!]!
+    
+    # Project Allocations
+    projectAllocations: [ProjectAllocation!]!
+    managedProjects: [Project!]!
   }
 
   input CreateUserInput {
@@ -26,6 +67,11 @@ export const schema = gql`
     name: String
     microsoftId: String
     roles: [Role!]
+    employeeId: String
+    department: Department
+    designation: Designation
+    dateOfJoining: DateTime
+    reportingManagerId: Int
   }
 
   input UpdateUserInput {
@@ -34,6 +80,11 @@ export const schema = gql`
     microsoftId: String
     roles: [Role!]
     selectedMeetingRoomId: Int
+    employeeId: String
+    department: Department
+    designation: Designation
+    dateOfJoining: DateTime
+    reportingManagerId: Int
   }
 
   input UpsertUserInput {

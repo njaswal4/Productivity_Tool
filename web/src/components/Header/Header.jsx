@@ -250,6 +250,15 @@ const Header = ({ isAdmin }) => {
             </div>
             <span className="mt-1 block">Assets</span>
           </Link>
+          <Link
+            to={routes.projectTracker()}
+            className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
+          >
+            <div className="w-5 h-5 mx-auto flex items-center justify-center">
+              <i className="ri-project-line"></i>
+            </div>
+            <span className="mt-1 block">Projects</span>
+          </Link>
           {hasRole && hasRole('ADMIN') && (
             <Link
               to={routes.adminPanel()}

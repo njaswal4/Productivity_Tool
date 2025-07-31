@@ -9,7 +9,16 @@ export const users = () => {
       selectedMeetingRoom: true,
       exceptionRequests: true,
       attendances: true,
+      projectAllocations: {
+        include: {
+          project: true,
+        },
+      },
+      reportingManagerUser: true,
+      // Include related users who report to this user
+      directReports: true,
     },
+    orderBy: { name: 'asc' },
   })
 }
 
@@ -21,6 +30,13 @@ export const user = ({ id }) => {
       selectedMeetingRoom: true,
       exceptionRequests: true,
       attendances: true,
+      projectAllocations: {
+        include: {
+          project: true,
+        },
+      },
+      reportingManagerUser: true,
+      directReports: true,
     },
   })
 }
@@ -130,6 +146,16 @@ export const currentUser = () => {
       selectedMeetingRoom: true,
       exceptionRequests: true,
       attendances: true,
+      projectAllocations: {
+        include: {
+          project: true,
+        },
+      },
+      reportingManagerUser: true,
+      directReports: true,
+      managedProjects: true,
+      assetAssignments: true,
+      vacationRequests: true,
     },
   })
 }
@@ -164,6 +190,26 @@ export const User = {
         },
       },
     })
+  },
+  
+  // Employee Management Resolvers
+  reportingManagerUser: (_obj, { root }) => {
+    return db.user.findUnique({ where: { id: root?.id } }).reportingManagerUser()
+  },
+  directReports: (_obj, { root }) => {
+    return db.user.findUnique({ where: { id: root?.id } }).directReports()
+  },
+  
+  // Project Allocation Resolvers
+  projectAllocations: (_obj, { root }) => {
+    return db.user.findUnique({ where: { id: root?.id } }).projectAllocations({
+      include: {
+        project: true,
+      },
+    })
+  },
+  managedProjects: (_obj, { root }) => {
+    return db.user.findUnique({ where: { id: root?.id } }).managedProjects()
   },
 }
 

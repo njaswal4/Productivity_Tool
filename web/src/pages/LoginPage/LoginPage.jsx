@@ -48,9 +48,11 @@ const LoginPage = () => {
         const { data } = await client.auth.getSession()
         
         if (data?.session) {
-          // Store auth token for API calls
-          localStorage.setItem('supabase-auth-token', data.session.access_token)
-          document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
+          // Store auth token for API calls (only in browser)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('supabase-auth-token', data.session.access_token)
+            document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
+          }
           
           console.log('Active session found, redirecting to home page')
           redirectAttemptedRef.current = true
@@ -93,7 +95,7 @@ const LoginPage = () => {
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/` : '/',
           scopes: 'email profile openid',
           prompt: 'login', // Force login screen to appear
         }

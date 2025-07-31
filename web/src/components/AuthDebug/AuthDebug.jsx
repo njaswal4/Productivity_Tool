@@ -9,12 +9,12 @@ const AuthDebug = () => {
   
   const runTests = async () => {
     // Test 1: Check localStorage
-    const storedToken = localStorage.getItem('supabase-auth-token')
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('supabase-auth-token') : null
     
     // Test 2: Check cookies
-    const tokenCookie = document.cookie
+    const tokenCookie = typeof document !== 'undefined' ? document.cookie
       .split('; ')
-      .find(row => row.startsWith('supabase-auth-token='))
+      .find(row => row.startsWith('supabase-auth-token=')) : null
     
     // Test 3: Check current session
     const { data: sessionData } = await client.auth.getSession()
