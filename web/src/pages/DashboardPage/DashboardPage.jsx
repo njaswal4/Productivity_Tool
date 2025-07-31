@@ -108,12 +108,12 @@ const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
 })
 
 const DashboardPage = () => {
-  const { currentUser } = useAuth()
+  const { currentUser, isAuthenticated, loading } = useAuth()
   const userId = currentUser.id
   const [userName, setUserName] = useState('')
 
   // For bookings and other attendance data
-  const { data, loading, error, refetch } = useQuery(BOOKINGS_QUERY, {
+  const { data, loading: bookingsLoading, error, refetch } = useQuery(BOOKINGS_QUERY, {
     variables: { userId },
     fetchPolicy: 'network-only',
   })
@@ -293,6 +293,30 @@ const GET_OFFICE_HOURS_QUERY = gql`
     }
   }, [breaksData, refetchBreaks])
 
+  // Listen for booking updates
+  React.useEffect(() => {
+    const handleBookingUpdated = () => {
+      console.log('📅 Dashboard: bookingsUpdated event received, refetching...')
+      refetch()
+    }
+
+    window.addEventListener('bookingsUpdated', handleBookingUpdated)
+
+    // Listen for localStorage changes (cross-tab communication)
+    const handleStorageChange = (e) => {
+      if (e.key === 'bookingsUpdated') {
+        console.log('📅 Dashboard: bookingsUpdated storage event, refetching...')
+        refetch()
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('bookingsUpdated', handleBookingUpdated)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [refetch])
+
   React.useEffect(() => {
     if (overtimeData?.overtimeAttendances && overtimeData.overtimeAttendances.length > 0) {
       setOvertimeToday(overtimeData.overtimeAttendances[0])
@@ -414,6 +438,13 @@ const GET_OFFICE_HOURS_QUERY = gql`
 
   const weeklyBreaks = weeklyBreaksData?.attendanceBreaksForUserInRange || []
 
+  // Add this for debugging
+  console.log('Dashboard auth state:', { 
+    isAuthenticated, 
+    loading, 
+    hasCurrentUser: !!currentUser 
+  })
+
   return (
     <>
    
@@ -438,7 +469,7 @@ const GET_OFFICE_HOURS_QUERY = gql`
               weeklyAttendances={weeklyAttendances}
               onClockIn={handleClockIn}
               onClockOut={handleClockOut}
-              loading={loading || clockInLoading || clockOutLoading || weeklyLoading}
+              loading={bookingsLoading || clockInLoading || clockOutLoading || weeklyLoading}
               refetch={refetch}
               officeHours={officeHours}
               breaks={weeklyBreaks} 

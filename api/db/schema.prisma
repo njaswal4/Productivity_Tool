@@ -11,22 +11,20 @@ datasource db {
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = "native"
+  binaryTargets = ["native"]
 }
-
 
 enum Role {
   USER
   ADMIN
 }
 
-
 model User {
   id                  Int                  @id @default(autoincrement())
-  name                String?
+  name                String?              
   email               String   @unique
-  hashedPassword      String   @default("")
-  salt                String   @default("")
+  hashedPassword      String?   @default("")
+  salt                String?   @default("")
   resetToken          String?
   resetTokenExpiresAt DateTime?
   bookings            Booking[]
@@ -34,11 +32,24 @@ model User {
   exceptionRequests   ExceptionRequest[]
   overtimeAttendances  OvertimeAttendance[]
   vacationRequests VacationRequest[]
+  assetAssignments    AssetAssignment[]
+  assetRequests       AssetRequest[]
   
   selectedMeetingRoomId Int? 
   selectedMeetingRoom   MeetingRoom? @relation("UserSelectedMeetingRoom", fields: [selectedMeetingRoomId], references: [id])
 
   roles                 Role[]  
+
+  // Add these fields for Microsoft SSO
+  microsoftId String?  @unique  // Store Microsoft's unique ID
+  lastLogin   DateTime @default(now())
+  
+  // Project management relationships
+  managedProjects       Project[] @relation("ProjectManager")
+  projectAllocations    ProjectAllocation[] @relation("ProjectAllocations")
+  allocatedProjects     ProjectAllocation[] @relation("AllocationManager")
+  organizedMeetings     ProjectMeeting[] @relation("MeetingOrganizer")
+}
 }
 
 model Booking {
@@ -132,5 +143,219 @@ model VacationRequest {
   status      String   @default("Pending") // "Pending", "Approved", "Rejected"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// Asset Tracker Models
+model AssetCategory {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique  // "Laptop", "Monitor", "Phone", "Tablet", etc.
+  description String?
+  assets      Asset[]
+  assetRequests AssetRequest[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Asset {
+  id              Int               @id @default(autoincrement())
+  assetId         String            @unique  // Custom asset ID like "LP001", "MON001"
+  name            String            // e.g., "MacBook Pro 16-inch"
+  model           String            // e.g., "A2338"
+  serialNumber    String?           @unique
+  purchaseDate    DateTime
+  warrantyExpiry  DateTime?
+  purchasePrice   Float?
+  vendor          String?
+  status          String            @default("Available") // "Available", "Assigned", "Under Repair", "Retired"
+  condition       String            @default("Good") // "Excellent", "Good", "Fair", "Poor"
+  location        String?           // Physical location when not assigned
+  notes           String?           @db.Text
+  
+  // Proof of purchase documents
+  proofOfPurchaseUrl String?        // URL to uploaded document (PDF, image)
+  proofOfPurchaseType String?       // "pdf", "image", etc.
+  proofOfPurchaseFileName String?   // Original filename
+  
+  // Relations
+  categoryId      Int
+  category        AssetCategory     @relation(fields: [categoryId], references: [id])
+  assignments     AssetAssignment[]
+  requests        AssetRequest[]
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model AssetAssignment {
+  id            Int       @id @default(autoincrement())
+  
+  // Asset and User relations
+  assetId       Int
+  asset         Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Assignment details
+  issueDate     DateTime  @default(now())
+  returnDate    DateTime?
+  expectedReturnDate DateTime?
+  department    String?   // Department the asset is assigned to
+  
+  // Assignment metadata
+  issuedBy      String?   // Name/ID of person who issued the asset
+  returnedBy    String?   // Name/ID of person who received the returned asset
+  issueNotes    String?   @db.Text
+  returnNotes   String?   @db.Text
+  condition     String?   // Condition when issued/returned
+  
+  // Status tracking
+  status        String    @default("Active") // "Active", "Returned", "Lost", "Damaged"
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AssetRequest {
+  id              Int       @id @default(autoincrement())
+  
+  // User requesting the asset
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Request details
+  assetCategoryId Int?
+  assetCategory   AssetCategory? @relation(fields: [assetCategoryId], references: [id])
+  specificAssetId Int?
+  specificAsset   Asset?    @relation(fields: [specificAssetId], references: [id])
+  
+  // Request metadata
+  reason          String    @db.Text
+  urgency         String    @default("Medium") // "Low", "Medium", "High", "Critical"
+  expectedDuration String?  // "Permanent", "1 week", "1 month", etc.
+  
+  // Approval workflow
+  status          String    @default("Pending") // "Pending", "Approved", "Rejected", "Fulfilled"
+  approvedBy      String?   // Admin who approved/rejected
+  approvedAt      DateTime?
+  rejectionReason String?   @db.Text
+  fulfillmentNotes String?  @db.Text
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// Resource Allocation & Daily Project Tracker Models
+
+model Project {
+  id              Int               @id @default(autoincrement())
+  name            String
+  description     String?           @db.Text
+  code            String            @unique  // Project code like "PROJ-001"
+  status          String            @default("Active") // "Active", "On Hold", "Completed", "Cancelled"
+  priority        String            @default("Medium") // "Low", "Medium", "High", "Critical"
+  
+  // Project dates
+  startDate       DateTime
+  endDate         DateTime?
+  estimatedHours  Float?
+  
+  // Project manager
+  managerId       Int?
+  manager         User?             @relation("ProjectManager", fields: [managerId], references: [id])
+  
+  // Relationships
+  allocations     ProjectAllocation[]
+  meetings        ProjectMeeting[]
+  dailyUpdates    DailyProjectUpdate[]
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model ProjectAllocation {
+  id              Int               @id @default(autoincrement())
+  
+  // Project and User relationship
+  projectId       Int
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId          Int
+  user            User              @relation("ProjectAllocations", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Allocation details
+  allocatedDate   DateTime          @default(now())
+  role            String?           // "Developer", "Designer", "Tester", etc.
+  hoursAllocated  Float?            // Hours allocated for this project per day
+  isActive        Boolean           @default(true)
+  
+  // Manager who made the allocation
+  allocatedBy     Int?
+  allocatedByUser User?             @relation("AllocationManager", fields: [allocatedBy], references: [id])
+  
+  // Daily updates for this allocation
+  dailyUpdates    DailyProjectUpdate[]
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@unique([projectId, userId, allocatedDate])
+}
+
+model ProjectMeeting {
+  id              Int               @id @default(autoincrement())
+  
+  // Meeting details
+  title           String
+  description     String?           @db.Text
+  meetingDate     DateTime
+  duration        Int               // Duration in minutes
+  location        String?           // Physical location or meeting link
+  meetingType     String            @default("Standup") // "Standup", "Review", "Planning", "Retrospective", "Other"
+  
+  // Project relationship
+  projectId       Int
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Meeting organizer
+  organizerId     Int?
+  organizer       User?             @relation("MeetingOrganizer", fields: [organizerId], references: [id])
+  
+  // Meeting status
+  status          String            @default("Scheduled") // "Scheduled", "In Progress", "Completed", "Cancelled"
+  isRecurring     Boolean           @default(false)
+  
+  // Meeting participants (can be tracked separately if needed)
+  attendeeIds     Int[]             // Array of user IDs who attended
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model DailyProjectUpdate {
+  id              Int               @id @default(autoincrement())
+  
+  // Links to allocation
+  allocationId    Int
+  allocation      ProjectAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  
+  // Date for this update
+  updateDate      DateTime          @default(now())
+  
+  // Status updates
+  statusUpdate    String            @db.Text // What was accomplished today
+  hoursWorked     Float?            // Actual hours worked on this project
+  blockers        String?           @db.Text // Any blockers or issues
+  nextDayPlan     String?           @db.Text // Plan for next day
+  
+  // Progress tracking
+  completionPercentage Float?       // Estimated completion percentage
+  milestoneReached     String?      // Any milestone reached today
+  
+  // Meeting attendance for project meetings
+  meetingsAttended     Int[]        // Array of meeting IDs attended today
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@unique([allocationId, updateDate])
 }
 

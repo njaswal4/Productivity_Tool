@@ -150,10 +150,20 @@ const UpcomingBookings = ({ userId }) => {
   })
 
   const [deleteBooking] = useMutation(DELETE_BOOKING_MUTATION, {
+    onCompleted: () => {
+      // Notify other components about the update
+      window.dispatchEvent(new Event('bookingsUpdated'))
+      window.localStorage.setItem('bookingsUpdated', Date.now())
+    },
     refetchQueries: [{ query: BOOKINGS_QUERY, variables: { userId } }],
   })
 
   const [finishBooking] = useMutation(FINISH_BOOKING_MUTATION, {
+    onCompleted: () => {
+      // Notify other components about the update
+      window.dispatchEvent(new Event('bookingsUpdated'))
+      window.localStorage.setItem('bookingsUpdated', Date.now())
+    },
     refetchQueries: [{ query: BOOKINGS_QUERY, variables: { userId } }],
   })
 
@@ -170,18 +180,37 @@ const UpcomingBookings = ({ userId }) => {
     if (data?.bookings) setBookings(data.bookings)
   }, [data])
 
-  // Poll in the background and update state only if changed
+  // Listen for booking updates (event-driven instead of polling)
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const handleBookingUpdated = async () => {
+      console.log('📅 UpcomingBookings: bookingsUpdated event received, refetching...')
       const result = await refetch()
       if (result.data?.bookings) {
-        if (JSON.stringify(result.data.bookings) !== JSON.stringify(bookings)) {
-          setBookings(result.data.bookings)
-        }
+        setBookings(result.data.bookings)
       }
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [refetch, bookings])
+    }
+
+    // Listen for custom event from booking components
+    window.addEventListener('bookingsUpdated', handleBookingUpdated)
+
+    // Listen for localStorage changes (cross-tab communication)
+    const handleStorageChange = (e) => {
+      if (e.key === 'bookingsUpdated') {
+        console.log('📅 UpcomingBookings: bookingsUpdated storage event, refetching...')
+        refetch().then(result => {
+          if (result.data?.bookings) {
+            setBookings(result.data.bookings)
+          }
+        })
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('bookingsUpdated', handleBookingUpdated)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [refetch])
 
   const handleDeleteClick = (booking) => {
     setBookingToDelete(booking)

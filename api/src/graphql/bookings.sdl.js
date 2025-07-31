@@ -10,15 +10,22 @@ export const schema = gql`
     meetingRoomId: Int
     meetingRoom: MeetingRoom
     createdAt: DateTime!
+    updatedAt: DateTime!
   }
-type MeetingRoom {
-  id: Int!
-  name: String!
-  bookings: [Booking!]!
-}
+
+  type MeetingRoom {
+    id: Int!
+    name: String!
+    bookings: [Booking!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
   type Query {
-    bookings(userId: Int): [Booking!]! @requireAuth
+    bookings(userId: Int): [Booking!]! @requireAuth  # Back to @requireAuth
     booking(id: Int!): Booking @requireAuth
+    meetingRooms: [MeetingRoom!]! @requireAuth
+    meetingRoom(id: Int!): MeetingRoom @requireAuth
   }
 
   input CreateBookingInput {

@@ -28,8 +28,7 @@ export const schema = gql`
   }
 
   type Mutation {
-    createOvertimeBreak(input: CreateOvertimeBreakInput!): OvertimeBreak!
-      @requireAuth
+    createOvertimeBreak(input: CreateOvertimeBreakInput!): OvertimeBreak! @requireAuth
     updateOvertimeBreak(
       id: Int!
       input: UpdateOvertimeBreakInput!

@@ -45,6 +45,9 @@ export const Success = ({ booking }) => {
     {
       onCompleted: () => {
         toast.success('Booking updated')
+        // Notify other components about the update
+        window.dispatchEvent(new Event('bookingsUpdated'))
+        window.localStorage.setItem('bookingsUpdated', Date.now())
         navigate(routes.bookings())
       },
       onError: (error) => {

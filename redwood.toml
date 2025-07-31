@@ -6,16 +6,26 @@
 # https://redwoodjs.com/docs/app-configuration-redwood-toml
 
 [web]
-  title = "Redwood App"
+  title = "2Creative Productivity Tool"
   port = 8910
   apiUrl = "/.netlify/functions"
   includeEnvironmentVariables = [
-    # Add any ENV vars that should be available to the web side to this array
-    # See https://redwoodjs.com/docs/environment-variables#web
+    "SUPABASE_URL",
+    "SUPABASE_KEY",
+    "SUPABASE_JWT_SECRET",
+    "MICROSOFT_CLIENT_ID",
+    "MICROSOFT_TENANT_ID"
   ]
+
 [api]
   port = 8911
+
 [browser]
   open = true
+
+[generate]
+  tests = true
+  stories = true
+
 [notifications]
   versionUpdates = ["latest"]

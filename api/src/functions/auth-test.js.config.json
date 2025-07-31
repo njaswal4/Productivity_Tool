@@ -1,0 +1,5 @@
+{
+  "path": "auth-test",
+  "include": ["db", "logger"],
+  "excludeMiddleware": ["useRequireAuth"]
+}

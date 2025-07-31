@@ -192,7 +192,15 @@ const VacationPlanner = () => {
   const [viewMode, setViewMode] = useState('list') // 'list' or 'calendar'
   const today = new Date()
 
-  const { data, loading, error, refetch } = useQuery(USER_VACATION_REQUESTS)
+  const { data, loading, error, refetch } = useQuery(USER_VACATION_REQUESTS, {
+    onCompleted: (data) => {
+      console.log('🏖️ VacationPlanner: Query completed successfully', data)
+    },
+    onError: (error) => {
+      console.log('❌ VacationPlanner: Query error', error)
+    },
+    fetchPolicy: 'network-only', // Ensure we always fetch fresh data
+  })
 
   const [deleteVacationRequest] = useMutation(DELETE_VACATION_REQUEST, {
     onCompleted: () => {
@@ -357,6 +365,10 @@ const VacationPlanner = () => {
     
     return { style }
   }
+
+  useEffect(() => {
+    console.log('🏖️ VacationPlanner state:', { loading, error: error?.message, dataLength: data?.userVacationRequests?.length })
+  }, [loading, error, data])
 
   // Add this useEffect to listen for changes from admin
   useEffect(() => {

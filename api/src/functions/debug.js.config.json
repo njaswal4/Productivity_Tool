@@ -1,0 +1,5 @@
+{
+  "path": "debug",
+  "include": ["db", "logger"],
+  "excludeMiddleware": ["useRequireAuth"]
+}

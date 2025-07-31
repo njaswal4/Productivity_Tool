@@ -7,38 +7,42 @@
 // 'src/pages/HomePage/HomePage.js'         -> HomePage
 // 'src/pages/Admin/BooksPage/BooksPage.js' -> AdminBooksPage
 
-import { Set, Router, Route, PrivateSet } from '@redwoodjs/router'
-
+import { Router, Route, Set, Private, PrivateSet } from '@redwoodjs/router'
 import ScaffoldLayout from 'src/layouts/ScaffoldLayout'
-
 import { useAuth } from './auth'
-
 
 const Routes = () => {
   return (
     <Router useAuth={useAuth}>
-      <Route path="/login" page={LoginPage} name="login" />
-      <Route path="/signup" page={SignupPage} name="signup" />
-      <Route path="/forgot-password" page={ForgotPasswordPage} name="forgotPassword" />
-      <Route path="/reset-password" page={ResetPasswordPage} name="resetPassword" />
-      <Set wrap={ScaffoldLayout} title="Bookings" titleTo="bookings" buttonLabel="New Booking" buttonTo="newBooking">
-        <Route path="/bookings/new" page={BookingNewBookingPage} name="newBooking" />
-        <Route path="/bookings/{id:Int}/edit" page={BookingEditBookingPage} name="editBooking" />
-        <Route path="/bookings/{id:Int}" page={BookingBookingPage} name="booking" />
-        <Route path="/bookings" page={BookingBookingsPage} name="bookings" />
-      </Set>
-      <Set wrap={ScaffoldLayout} title="Users" titleTo="users" buttonLabel="New User" buttonTo="newUser">
-        <Route path="/users/new" page={UserNewUserPage} name="newUser" />
-        <Route path="/users/{id:Int}/edit" page={UserEditUserPage} name="editUser" />
-        <Route path="/users/{id:Int}" page={UserUserPage} name="user" />
-        <Route path="/users" page={UserUsersPage} name="users" />
-      </Set>
-      <Route path="/form" page={FormPage} name="form" />
-      <PrivateSet roles={['ADMIN']} unauthenticated="login">
-        <Route path="/admin-panel" page={AdminPanelPage} name="adminPanel" />
-      </PrivateSet>
+      <Route 
+        path="/login" 
+        page={LoginPage} 
+        name="login" 
+        prerender
+      />
+      
       <PrivateSet unauthenticated="login">
         <Route path="/" page={DashboardPage} name="home" />
+        <Route path="/form" page={FormPage} name="form" />
+        <Route path="/asset-tracker" page={AssetTrackerPage} name="assetTracker" />
+        
+        <Set wrap={ScaffoldLayout} title="Bookings" titleTo="bookings" buttonLabel="New Booking" buttonTo="newBooking">
+          <Route path="/bookings/new" page={BookingNewBookingPage} name="newBooking" />
+          <Route path="/bookings/{id:Int}/edit" page={BookingEditBookingPage} name="editBooking" />
+          <Route path="/bookings/{id:Int}" page={BookingBookingPage} name="booking" />
+          <Route path="/bookings" page={BookingBookingsPage} name="bookings" />
+        </Set>
+        
+        <Set wrap={ScaffoldLayout} title="Users" titleTo="users" buttonLabel="New User" buttonTo="newUser">
+          <Route path="/users/new" page={UserNewUserPage} name="newUser" />
+          <Route path="/users/{id:Int}/edit" page={UserEditUserPage} name="editUser" />
+          <Route path="/users/{id:Int}" page={UserUserPage} name="user" />
+          <Route path="/users" page={UserUsersPage} name="users" />
+        </Set>
+      </PrivateSet>
+
+      <PrivateSet unauthenticated="login" roles={['ADMIN']}>
+        <Route path="/admin-panel" page={AdminPanelPage} name="adminPanel" />
       </PrivateSet>
 
       <Route notfound page={NotFoundPage} />

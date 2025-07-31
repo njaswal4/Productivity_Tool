@@ -5,9 +5,10 @@
   "dependencies": {
     "@redwoodjs/api": "8.6.1",
     "@redwoodjs/auth-dbauth-api": "8.6.1",
-    "@redwoodjs/auth-supabase-api": "8.6.1",
+    "@redwoodjs/auth-supabase-api": "^8.8.0",
     "@redwoodjs/graphql-server": "8.6.1",
     "@simplewebauthn/server": "^7",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.4"
   }
 }

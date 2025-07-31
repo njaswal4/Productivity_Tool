@@ -18,6 +18,9 @@ const BookingsList = ({ bookings }) => {
   const [deleteBooking] = useMutation(DELETE_BOOKING_MUTATION, {
     onCompleted: () => {
       toast.success('Booking deleted')
+      // Notify other components about the update
+      window.dispatchEvent(new Event('bookingsUpdated'))
+      window.localStorage.setItem('bookingsUpdated', Date.now())
     },
     onError: (error) => {
       toast.error(error.message)

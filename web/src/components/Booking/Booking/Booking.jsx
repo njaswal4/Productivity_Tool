@@ -159,6 +159,11 @@ export const BookingForm = ({ refetchBookings }) => {
       setTitle('')
       setSelectedSlots([])
       setNotes('')
+      
+      // Notify other components about the update
+      window.dispatchEvent(new Event('bookingsUpdated'))
+      window.localStorage.setItem('bookingsUpdated', Date.now())
+      
       if (refetchBookings) refetchBookings()
       if (refetchBookingsData) refetchBookingsData()
     } catch (err) {

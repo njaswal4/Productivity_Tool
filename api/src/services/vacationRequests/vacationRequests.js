@@ -1,8 +1,6 @@
 import { db } from 'src/lib/db'
-import { requireAuth } from 'src/lib/auth'
 
 export const vacationRequests = () => {
-  requireAuth({ role: 'ADMIN' })
   return db.vacationRequest.findMany({
     orderBy: { createdAt: 'desc' },
     include: { user: true },
@@ -10,24 +8,33 @@ export const vacationRequests = () => {
 }
 
 export const vacationRequest = ({ id }) => {
-  requireAuth()
   return db.vacationRequest.findUnique({
     where: { id },
     include: { user: true },
   })
 }
 
-export const userVacationRequests = () => {
-  requireAuth()
+export const userVacationRequests = (_args, { context }) => {
+  console.log('🏖️ userVacationRequests called')
+  console.log('🔍 context exists:', !!context)
+  console.log('🔍 context.currentUser exists:', !!context?.currentUser)
+  console.log('🔍 context.currentUser.id:', context?.currentUser?.id)
+  
+  if (!context?.currentUser?.id) {
+    console.log('❌ No currentUser.id found in context')
+    throw new Error('User not authenticated or missing user ID')
+  }
+  
   const userId = context.currentUser.id
+  console.log('✅ Using userId:', userId)
+  
   return db.vacationRequest.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
   })
 }
 
-export const createVacationRequest = ({ input }) => {
-  requireAuth()
+export const createVacationRequest = ({ input }, { context }) => {
   const userId = context.currentUser.id
   return db.vacationRequest.create({
     data: {
@@ -37,7 +44,7 @@ export const createVacationRequest = ({ input }) => {
   })
 }
 
-export const updateVacationRequest = ({ id, input }) => {
+export const updateVacationRequest = ({ id, input }, { context }) => {
   // Allow users to cancel their own approved requests
   if (input.status === 'Cancelled') {
     const userId = context.currentUser.id
@@ -52,8 +59,7 @@ export const updateVacationRequest = ({ id, input }) => {
     }
   }
 
-  // For other status changes, require admin
-  requireAuth({ role: 'ADMIN' })
+  // For other status changes, admin authorization is handled by GraphQL @requireAuth directive
   return db.vacationRequest.update({
     data: input,
     where: { id },
@@ -61,7 +67,6 @@ export const updateVacationRequest = ({ id, input }) => {
 }
 
 export const approveVacationRequest = ({ id }) => {
-  requireAuth({ role: 'ADMIN' })
   return db.vacationRequest.update({
     data: { status: 'Approved' },
     where: { id },
@@ -69,7 +74,6 @@ export const approveVacationRequest = ({ id }) => {
 }
 
 export const rejectVacationRequest = ({ id }) => {
-  requireAuth({ role: 'ADMIN' })
   return db.vacationRequest.update({
     data: { status: 'Rejected' },
     where: { id },
@@ -80,8 +84,6 @@ export const rejectVacationRequest = ({ id }) => {
 // Example: Make sure the delete service returns all fields needed by the cache
 
 export const deleteVacationRequest = async ({ id }) => {
-  requireAuth()
-
   // Get the vacation request first so we can return it after deletion
   const vacationRequest = await db.vacationRequest.findUnique({
     where: { id },
