@@ -17,12 +17,49 @@ generator client {
 enum Role {
   USER
   ADMIN
+  MANAGER
+  TEAM_LEAD
+}
+
+enum Department {
+  ENGINEERING
+  DESIGN
+  MARKETING
+  SALES
+  HR
+  FINANCE
+  OPERATIONS
+}
+
+enum EmployeeDesignation {
+  JUNIOR_DEVELOPER
+  SENIOR_DEVELOPER
+  LEAD_DEVELOPER
+  ARCHITECT
+  DESIGNER
+  SENIOR_DESIGNER
+  MARKETING_SPECIALIST
+  SALES_REPRESENTATIVE
+  HR_SPECIALIST
+  ACCOUNTANT
+  PROJECT_MANAGER
+  PRODUCT_MANAGER
 }
 
 model User {
   id                  Int                  @id @default(autoincrement())
   name                String?              
   email               String   @unique
+  
+  // Employee Information
+  department          Department?
+  designation         EmployeeDesignation?
+  employeeId          String?              @unique // Company employee ID
+  dateOfJoining       DateTime?
+  reportingManager    Int?                 // ID of reporting manager
+  reportingManagerUser User?               @relation("ReportingManager", fields: [reportingManager], references: [id])
+  directReports       User[]               @relation("ReportingManager")
+  
   hashedPassword      String?   @default("")
   salt                String?   @default("")
   resetToken          String?
@@ -49,7 +86,6 @@ model User {
   projectAllocations    ProjectAllocation[] @relation("ProjectAllocations")
   allocatedProjects     ProjectAllocation[] @relation("AllocationManager")
   organizedMeetings     ProjectMeeting[] @relation("MeetingOrganizer")
-}
 }
 
 model Booking {
@@ -258,6 +294,7 @@ model Project {
   startDate       DateTime
   endDate         DateTime?
   estimatedHours  Float?
+  budget          Float?            // Project budget
   
   // Project manager
   managerId       Int?
@@ -337,11 +374,16 @@ model DailyProjectUpdate {
   allocationId    Int
   allocation      ProjectAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
   
+  // Links to project (for easier querying)
+  projectId       Int
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
   // Date for this update
-  updateDate      DateTime          @default(now())
+  date            DateTime          @default(now())
   
   // Status updates
-  statusUpdate    String            @db.Text // What was accomplished today
+  status          String            @default("ON_TRACK") // ON_TRACK, DELAYED, BLOCKED, COMPLETED
+  description     String            @db.Text // What was accomplished today
   hoursWorked     Float?            // Actual hours worked on this project
   blockers        String?           @db.Text // Any blockers or issues
   nextDayPlan     String?           @db.Text // Plan for next day
@@ -356,6 +398,6 @@ model DailyProjectUpdate {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   
-  @@unique([allocationId, updateDate])
+  @@unique([allocationId, date])
 }
 
