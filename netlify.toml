@@ -5,6 +5,8 @@
 
   [build.environment]
     NODE_VERSION = "20"
+    # Configure secrets scanning
+    SECRETS_SCAN_ENABLED = "false"
 
 [[redirects]]
   from = "/*"
