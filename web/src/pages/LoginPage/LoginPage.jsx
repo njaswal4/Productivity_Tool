@@ -18,64 +18,51 @@ const LoginPage = () => {
     }
   }, [isAuthenticated, loading, navigate])
 
-  // Handle OAuth callback from URL
+  // Check for session on component mount (after OAuth redirect)
   useEffect(() => {
-    const handleOAuthCallback = async () => {
-      if (typeof window === 'undefined' || loading) return
+    const checkForSession = async () => {
+      if (loading) return
       
-      console.log('Current URL:', window.location.href)
-      console.log('URL Search params:', window.location.search)
-      console.log('URL Hash:', window.location.hash)
+      console.log('Checking for session after component mount...')
       
-      // Check if this is an OAuth callback (has auth parameters in URL)
-      const url = new URL(window.location.href)
-      const hasAuthCode = url.searchParams.get('code')
-      const hasAccessToken = url.hash.includes('access_token') || url.hash.includes('id_token')
-      
-      console.log('OAuth callback check:', { hasAuthCode, hasAccessToken })
-      
-      if (hasAuthCode || hasAccessToken) {
-        console.log('OAuth callback detected, processing...')
-        setIsLoggingIn(true)
+      try {
+        const { data: session, error } = await client.auth.getSession()
+        console.log('Session check result:', { session, error })
         
-        try {
-          // Wait for Supabase to process the callback automatically
-          await new Promise(resolve => setTimeout(resolve, 1500))
-          
-          // Check session after callback processing
-          const { data: session, error } = await client.auth.getSession()
-          console.log('Session check result:', { session, error })
-          
-          if (error) {
-            console.error('Session error after callback:', error)
-            setError('Authentication failed. Please try again.')
-          } else if (session?.session?.user) {
-            console.log('Authentication successful, user:', session.session.user.email)
-            console.log('Cleaning URL and waiting for RedwoodJS to update...')
-            
-            // Clean the URL
-            window.history.replaceState({}, document.title, '/login')
-            
-            // Wait for RedwoodJS auth to catch up
-            setTimeout(() => {
-              console.log('Forcing navigation to home')
-              navigate(routes.home())
-            }, 500)
-          } else {
-            console.log('No session found after callback')
-            setError('Authentication failed. Please try again.')
-          }
-        } catch (error) {
-          console.error('OAuth callback error:', error)
-          setError('Authentication failed. Please try again.')
-        } finally {
-          setIsLoggingIn(false)
+        if (session?.session?.user) {
+          console.log('Found active session for user:', session.session.user.email)
+          // The isAuthenticated useEffect above should handle the redirect
+        } else {
+          console.log('No active session found')
         }
+      } catch (error) {
+        console.error('Error checking session:', error)
       }
     }
 
-    handleOAuthCallback()
-  }, [client, loading, navigate])
+    // Small delay to let Supabase process any OAuth callback
+    const timeout = setTimeout(checkForSession, 1000)
+    
+    return () => clearTimeout(timeout)
+  }, [client, loading])
+
+  // Listen for auth state changes
+  useEffect(() => {
+    if (!client?.auth) return
+
+    const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session')
+      
+      if (event === 'SIGNED_IN' && session) {
+        console.log('User signed in via auth state change')
+        // Let the isAuthenticated useEffect handle the redirect
+      }
+    })
+
+    return () => {
+      authListener.subscription?.unsubscribe?.()
+    }
+  }, [client?.auth])
 
   // Handle Microsoft login button click
   const onLogin = async () => {
@@ -83,13 +70,11 @@ const LoginPage = () => {
       setIsLoggingIn(true)
       setError(null)
       console.log('Starting Microsoft login process...')
-      
+
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-          redirectTo: globalThis?.RWJS_ENV?.SUPABASE_AUTH_REDIRECT_URL || 
-                     import.meta.env?.SUPABASE_AUTH_REDIRECT_URL || 
-                     (typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'),
+          redirectTo: `${window.location.origin}/login`,
           scopes: 'email profile openid',
           prompt: 'login',
         }
