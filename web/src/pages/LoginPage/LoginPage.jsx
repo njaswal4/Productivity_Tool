@@ -9,69 +9,169 @@ const LoginPage = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const redirectAttemptedRef = useRef(false)
   const sessionCheckTimeoutRef = useRef(null)
+  const authListenerRef = useRef(null)
 
-  // Check authentication status and redirect if authenticated
+  // Set up auth state listener for OAuth callbacks
+  useEffect(() => {
+    if (!client?.auth) return
+
+    // Clean up existing listener
+    if (authListenerRef.current) {
+      authListenerRef.current.subscription?.unsubscribe?.()
+    }
+
+    // Listen for auth state changes (OAuth callbacks)
+    const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session')
+      
+      if (event === 'SIGNED_IN' && session && !redirectAttemptedRef.current) {
+        console.log('User signed in successfully via OAuth callback')
+        
+        // Store auth token
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('supabase-auth-token', session.access_token)
+          document.cookie = `supabase-auth-token=${session.access_token};path=/;max-age=3600;SameSite=Lax`
+        }
+        
+        setIsLoggingIn(false)
+        
+        // Give RedwoodJS auth a moment to catch up, then redirect
+        setTimeout(() => {
+          redirectAttemptedRef.current = true
+          navigate(routes.home())
+        }, 200)
+      } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out')
+        redirectAttemptedRef.current = false
+        setIsLoggingIn(false)
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('supabase-auth-token')
+          localStorage.removeItem('last_session_check')
+        }
+      }
+    })
+
+    authListenerRef.current = authListener
+
+    return () => {
+      if (authListenerRef.current) {
+        authListenerRef.current.subscription?.unsubscribe?.()
+      }
+    }
+  }, [client?.auth, navigate])
+
+  // Handle OAuth callback and authentication state
   useEffect(() => {
     // Clear any existing timeout to avoid memory leaks
     if (sessionCheckTimeoutRef.current) {
       clearTimeout(sessionCheckTimeoutRef.current)
     }
 
-    // If already authenticated and not yet redirected, go to home
-    if (isAuthenticated && !redirectAttemptedRef.current) {
-      console.log('User is authenticated, redirecting to home page')
-      redirectAttemptedRef.current = true
-      navigate(routes.home())
-      return
-    }
-
-    // Skip session check if redirecting or loading
-    if (redirectAttemptedRef.current || loading) {
-      return
-    }
-
-    const checkSession = async () => {
+    const handleAuthFlow = async () => {
       try {
-        // Rate limit checks to prevent excessive API calls (only in browser)
-        if (typeof window === 'undefined') return
-        
-        const lastCheck = parseInt(localStorage.getItem('last_session_check') || '0')
-        const now = Date.now()
-        
-        // Only check once every 10 seconds
-        if (now - lastCheck < 10000) {
-          console.log('Session checked recently, skipping')
+        // Skip if loading or already processing
+        if (loading || redirectAttemptedRef.current) {
           return
         }
-        
-        localStorage.setItem('last_session_check', now.toString())
-        console.log('Checking session status...')
-        
-        const { data } = await client.auth.getSession()
-        
-        if (data?.session) {
-          // Store auth token for API calls (only in browser)
-          localStorage.setItem('supabase-auth-token', data.session.access_token)
-          document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
-          
-          console.log('Active session found, redirecting to home page')
+
+        // If already authenticated by RedwoodJS auth, redirect immediately
+        if (isAuthenticated) {
+          console.log('User is authenticated via RedwoodJS, redirecting to home page')
           redirectAttemptedRef.current = true
           navigate(routes.home())
-        } else {
-          console.log('No active session found')
+          return
+        }
+
+        // Only run in browser
+        if (typeof window === 'undefined') return
+
+        // Check for OAuth callback parameters in URL
+        const urlParams = new URLSearchParams(window.location.search)
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
+        
+        const hasAuthCode = urlParams.get('code') || hashParams.get('access_token')
+        
+        if (hasAuthCode) {
+          console.log('OAuth callback detected, processing authentication...')
+          setIsLoggingIn(true)
+          
+          // Let Supabase handle the OAuth callback
+          const { data, error } = await client.auth.getSession()
+          
+          if (error) {
+            console.error('OAuth callback error:', error)
+            setError('Authentication failed. Please try again.')
+            setIsLoggingIn(false)
+            
+            // Clean the URL
+            window.history.replaceState({}, document.title, window.location.pathname)
+            return
+          }
+          
+          if (data?.session) {
+            console.log('OAuth callback successful, session established')
+            
+            // Store auth token
+            localStorage.setItem('supabase-auth-token', data.session.access_token)
+            document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
+            
+            // Clean the URL
+            window.history.replaceState({}, document.title, window.location.pathname)
+            
+            // Force a small delay to ensure RedwoodJS auth catches up
+            setTimeout(() => {
+              redirectAttemptedRef.current = true
+              navigate(routes.home())
+            }, 100)
+            return
+          }
+        }
+        
+        // Regular session check (only if no callback parameters)
+        if (!hasAuthCode) {
+          // Rate limit checks
+          const lastCheck = parseInt(localStorage.getItem('last_session_check') || '0')
+          const now = Date.now()
+          
+          // Only check once every 10 seconds
+          if (now - lastCheck < 10000) {
+            console.log('Session checked recently, skipping')
+            return
+          }
+          
+          localStorage.setItem('last_session_check', now.toString())
+          console.log('Checking session status...')
+          
+          const { data } = await client.auth.getSession()
+          
+          if (data?.session) {
+            console.log('Active session found, redirecting to home page')
+            
+            // Store auth token
+            localStorage.setItem('supabase-auth-token', data.session.access_token)
+            document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
+            
+            // Small delay to ensure RedwoodJS auth state updates
+            setTimeout(() => {
+              redirectAttemptedRef.current = true
+              navigate(routes.home())
+            }, 100)
+          } else {
+            console.log('No active session found')
+            setIsLoggingIn(false)
+          }
         }
       } catch (e) {
-        console.error('Session check error:', e)
-        setError('Error checking authentication status')
+        console.error('Auth flow error:', e)
+        setError('Error during authentication')
+        setIsLoggingIn(false)
       }
     }
     
-    // Slightly delay the check to avoid race conditions
+    // Delay to avoid race conditions with RedwoodJS auth
     sessionCheckTimeoutRef.current = setTimeout(() => {
-      if (!loading) {
-        checkSession()
-      }
-    }, 500)
+      handleAuthFlow()
+    }, 300)
     
     // Clean up timeout on unmount
     return () => {
@@ -110,8 +210,8 @@ const LoginPage = () => {
         throw error
       }
 
-      console.log('Login initiated successfully:', data)
-      // OAuth redirect will happen automatically
+      console.log('Login initiated successfully, redirecting to Microsoft...')
+      // OAuth redirect will happen automatically - don't set loading to false here
     } catch (error) {
       console.error('Login process failed:', error)
       setError(error.message || 'An error occurred during login')
