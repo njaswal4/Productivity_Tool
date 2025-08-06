@@ -24,9 +24,15 @@ import { db } from 'src/lib/db'
 export const getCurrentUser = async (decoded) => {
   console.log('🔍 getCurrentUser called with decoded JWT:', decoded);
   
+  // TEMPORARY: For demo purposes, return a mock user when no auth
   if (!decoded) {
-    console.log('❌ No decoded JWT provided');
-    return null;
+    console.log('❌ No decoded JWT provided - returning demo user');
+    return {
+      id: 1,
+      email: 'demo@2cretiv.com',
+      roles: ['USER'],
+      name: 'Demo User'
+    };
   }
 
   // Extract user data from the JWT payload

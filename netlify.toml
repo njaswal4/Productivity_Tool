@@ -5,11 +5,6 @@
 
   [build.environment]
     NODE_VERSION = "20"
-    # Configure secrets scanning
-    SECRETS_SCAN_ENABLED = "false"
-    # Make Supabase env vars available to build process
-    VITE_SUPABASE_URL = "${SUPABASE_URL}"
-    VITE_SUPABASE_KEY = "${SUPABASE_KEY}"
 
 [[redirects]]
   from = "/*"
