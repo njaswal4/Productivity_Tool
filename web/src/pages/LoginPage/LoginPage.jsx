@@ -22,14 +22,29 @@ const LoginPage = () => {
         localStorage.setItem('supabase-auth-token', session.access_token)
         localStorage.setItem('user_authenticated', 'true')
         
-        // Immediate redirect without waiting for RedwoodJS state
-        redirectAttemptedRef.current = true
-        navigate(routes.home())
+        // Force page reload to trigger RedwoodJS auth state sync
+        console.log('Forcing page reload to sync auth state...')
+        window.location.href = routes.home()
+        return
+      }
+      
+      if (event === 'INITIAL_SESSION' && session) {
+        console.log('Initial session detected, attempting redirect')
+        
+        // Store the session info
+        localStorage.setItem('supabase-auth-token', session.access_token)
+        localStorage.setItem('user_authenticated', 'true')
+        
+        // Try redirect with a delay to let auth state sync
+        setTimeout(() => {
+          console.log('Delayed redirect after initial session')
+          window.location.href = routes.home()
+        }, 1000)
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [client.auth, navigate])
+  }, [client.auth])
 
   // Check authentication status and redirect if authenticated
   useEffect(() => {
@@ -83,9 +98,9 @@ const LoginPage = () => {
           localStorage.setItem('user_authenticated', 'true')
           document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
           
-          // Immediate redirect - don't wait for RedwoodJS state
-          redirectAttemptedRef.current = true
-          navigate(routes.home())
+          // Force page reload to sync auth state with RedwoodJS
+          console.log('Forcing page reload to sync RedwoodJS auth state...')
+          window.location.href = routes.home()
         } else {
           console.log('No valid session found')
           localStorage.removeItem('user_authenticated')
