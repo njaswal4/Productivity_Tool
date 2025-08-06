@@ -29,9 +29,16 @@ const LoginPage = () => {
         const { data: session, error } = await client.auth.getSession()
         console.log('Session check result:', { session, error })
         
-        if (session?.session?.user) {
+        if (session?.session?.user && !isAuthenticated) {
           console.log('Found active session for user:', session.session.user.email)
-          // The isAuthenticated useEffect above should handle the redirect
+          console.log('But RedwoodJS isAuthenticated is still false. Forcing navigation...')
+          
+          // Force navigation since we have a valid session but RedwoodJS hasn't caught up
+          setTimeout(() => {
+            navigate(routes.home())
+          }, 500)
+        } else if (session?.session?.user) {
+          console.log('Found active session for user:', session.session.user.email)
         } else {
           console.log('No active session found')
         }
@@ -44,7 +51,7 @@ const LoginPage = () => {
     const timeout = setTimeout(checkForSession, 1000)
     
     return () => clearTimeout(timeout)
-  }, [client, loading])
+  }, [client, loading, isAuthenticated, navigate])
 
   // Listen for auth state changes
   useEffect(() => {
@@ -55,14 +62,22 @@ const LoginPage = () => {
       
       if (event === 'SIGNED_IN' && session) {
         console.log('User signed in via auth state change')
-        // Let the isAuthenticated useEffect handle the redirect
+        console.log('Waiting for RedwoodJS auth to sync...')
+        
+        // Give RedwoodJS time to sync, then force navigation
+        setTimeout(() => {
+          if (!isAuthenticated) {
+            console.log('RedwoodJS auth still not synced, forcing navigation')
+            navigate(routes.home())
+          }
+        }, 1000)
       }
     })
 
     return () => {
       authListener.subscription?.unsubscribe?.()
     }
-  }, [client?.auth])
+  }, [client?.auth, isAuthenticated, navigate])
 
   // Handle Microsoft login button click
   const onLogin = async () => {
