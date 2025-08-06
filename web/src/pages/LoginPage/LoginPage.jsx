@@ -23,30 +23,44 @@ const LoginPage = () => {
     const handleOAuthCallback = async () => {
       if (typeof window === 'undefined' || loading) return
       
+      console.log('Current URL:', window.location.href)
+      console.log('URL Search params:', window.location.search)
+      console.log('URL Hash:', window.location.hash)
+      
       // Check if this is an OAuth callback (has auth parameters in URL)
       const url = new URL(window.location.href)
-      const hasAuthParams = url.searchParams.get('code') || 
-                          url.hash.includes('access_token') || 
-                          url.hash.includes('id_token')
+      const hasAuthCode = url.searchParams.get('code')
+      const hasAccessToken = url.hash.includes('access_token') || url.hash.includes('id_token')
       
-      if (hasAuthParams) {
+      console.log('OAuth callback check:', { hasAuthCode, hasAccessToken })
+      
+      if (hasAuthCode || hasAccessToken) {
         console.log('OAuth callback detected, processing...')
         setIsLoggingIn(true)
         
         try {
-          // Clean the URL first to prevent issues
-          window.history.replaceState({}, document.title, '/login')
+          // Wait for Supabase to process the callback automatically
+          await new Promise(resolve => setTimeout(resolve, 1500))
           
-          // Wait a moment for the auth to process
-          await new Promise(resolve => setTimeout(resolve, 1000))
+          // Check session after callback processing
+          const { data: session, error } = await client.auth.getSession()
+          console.log('Session check result:', { session, error })
           
-          // Check session
-          const { data: session } = await client.auth.getSession()
-          console.log('Session after callback:', session)
-          
-          if (session?.session?.user) {
+          if (error) {
+            console.error('Session error after callback:', error)
+            setError('Authentication failed. Please try again.')
+          } else if (session?.session?.user) {
             console.log('Authentication successful, user:', session.session.user.email)
-            // Let RedwoodJS handle the redirect via the first useEffect
+            console.log('Cleaning URL and waiting for RedwoodJS to update...')
+            
+            // Clean the URL
+            window.history.replaceState({}, document.title, '/login')
+            
+            // Wait for RedwoodJS auth to catch up
+            setTimeout(() => {
+              console.log('Forcing navigation to home')
+              navigate(routes.home())
+            }, 500)
           } else {
             console.log('No session found after callback')
             setError('Authentication failed. Please try again.')
@@ -61,7 +75,7 @@ const LoginPage = () => {
     }
 
     handleOAuthCallback()
-  }, [client, loading])
+  }, [client, loading, navigate])
 
   // Handle Microsoft login button click
   const onLogin = async () => {
