@@ -97,7 +97,9 @@ const LoginPage = () => {
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/` : '/',
+          redirectTo: globalThis?.RWJS_ENV?.SUPABASE_AUTH_REDIRECT_URL || 
+                     import.meta.env?.SUPABASE_AUTH_REDIRECT_URL || 
+                     (typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'),
           scopes: 'email profile openid',
           prompt: 'login', // Force login screen to appear
         }
