@@ -32,7 +32,9 @@ const LoginPage = () => {
 
     const checkSession = async () => {
       try {
-        // Rate limit checks to prevent excessive API calls
+        // Rate limit checks to prevent excessive API calls (only in browser)
+        if (typeof window === 'undefined') return
+        
         const lastCheck = parseInt(localStorage.getItem('last_session_check') || '0')
         const now = Date.now()
         
@@ -49,10 +51,8 @@ const LoginPage = () => {
         
         if (data?.session) {
           // Store auth token for API calls (only in browser)
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('supabase-auth-token', data.session.access_token)
-            document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
-          }
+          localStorage.setItem('supabase-auth-token', data.session.access_token)
+          document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
           
           console.log('Active session found, redirecting to home page')
           redirectAttemptedRef.current = true
@@ -88,8 +88,10 @@ const LoginPage = () => {
       setError(null)
       console.log('Starting Microsoft login process...')
       
-      // Clear any redirect prevention flags
-      localStorage.removeItem('last_session_check')
+      // Clear any redirect prevention flags (only in browser)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('last_session_check')
+      }
       redirectAttemptedRef.current = false
 
       const { data, error } = await client.auth.signInWithOAuth({
@@ -132,7 +134,9 @@ const LoginPage = () => {
       
       if (data?.session) {
         console.log('Session refreshed successfully')
-        localStorage.setItem('supabase-auth-token', data.session.access_token)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('supabase-auth-token', data.session.access_token)
+        }
         redirectAttemptedRef.current = false
         
         // Try redirecting to home

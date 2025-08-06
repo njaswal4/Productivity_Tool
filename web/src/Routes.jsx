@@ -18,13 +18,13 @@ const Routes = () => {
         path="/login" 
         page={LoginPage} 
         name="login" 
-        prerender
       />
       
       <PrivateSet unauthenticated="login">
         <Route path="/" page={DashboardPage} name="home" />
         <Route path="/form" page={FormPage} name="form" />
         <Route path="/asset-tracker" page={AssetTrackerPage} name="assetTracker" />
+        <Route path="/project-tracker" page={ProjectTrackerPage} name="projectTracker" />
         
         <Set wrap={ScaffoldLayout} title="Bookings" titleTo="bookings" buttonLabel="New Booking" buttonTo="newBooking">
           <Route path="/bookings/new" page={BookingNewBookingPage} name="newBooking" />
