@@ -7,179 +7,61 @@ const LoginPage = () => {
   const { isAuthenticated, client, loading } = useAuth()
   const [error, setError] = useState(null)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
-  const redirectAttemptedRef = useRef(false)
-  const sessionCheckTimeoutRef = useRef(null)
-  const authListenerRef = useRef(null)
 
-  // Set up auth state listener for OAuth callbacks
+  // Simple redirect if already authenticated
   useEffect(() => {
-    if (!client?.auth) return
-
-    // Clean up existing listener
-    if (authListenerRef.current) {
-      authListenerRef.current.subscription?.unsubscribe?.()
+    console.log('Auth state check:', { isAuthenticated, loading })
+    
+    if (isAuthenticated && !loading) {
+      console.log('User is already authenticated, redirecting to home')
+      navigate(routes.home())
     }
+  }, [isAuthenticated, loading, navigate])
 
-    // Listen for auth state changes (OAuth callbacks)
-    const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session')
+  // Handle OAuth callback from URL
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      if (typeof window === 'undefined' || loading) return
       
-      if (event === 'SIGNED_IN' && session && !redirectAttemptedRef.current) {
-        console.log('User signed in successfully via OAuth callback')
+      // Check if this is an OAuth callback (has auth parameters in URL)
+      const url = new URL(window.location.href)
+      const hasAuthParams = url.searchParams.get('code') || 
+                          url.hash.includes('access_token') || 
+                          url.hash.includes('id_token')
+      
+      if (hasAuthParams) {
+        console.log('OAuth callback detected, processing...')
+        setIsLoggingIn(true)
         
-        // Store auth token
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('supabase-auth-token', session.access_token)
-          document.cookie = `supabase-auth-token=${session.access_token};path=/;max-age=3600;SameSite=Lax`
-        }
-        
-        setIsLoggingIn(false)
-        
-        // Give RedwoodJS auth a moment to catch up, then redirect
-        setTimeout(() => {
-          redirectAttemptedRef.current = true
-          navigate(routes.home())
-        }, 200)
-      } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out')
-        redirectAttemptedRef.current = false
-        setIsLoggingIn(false)
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('supabase-auth-token')
-          localStorage.removeItem('last_session_check')
-        }
-      }
-    })
-
-    authListenerRef.current = authListener
-
-    return () => {
-      if (authListenerRef.current) {
-        authListenerRef.current.subscription?.unsubscribe?.()
-      }
-    }
-  }, [client?.auth, navigate])
-
-  // Handle OAuth callback and authentication state
-  useEffect(() => {
-    // Clear any existing timeout to avoid memory leaks
-    if (sessionCheckTimeoutRef.current) {
-      clearTimeout(sessionCheckTimeoutRef.current)
-    }
-
-    const handleAuthFlow = async () => {
-      try {
-        // Skip if loading or already processing
-        if (loading || redirectAttemptedRef.current) {
-          return
-        }
-
-        // If already authenticated by RedwoodJS auth, redirect immediately
-        if (isAuthenticated) {
-          console.log('User is authenticated via RedwoodJS, redirecting to home page')
-          redirectAttemptedRef.current = true
-          navigate(routes.home())
-          return
-        }
-
-        // Only run in browser
-        if (typeof window === 'undefined') return
-
-        // Check for OAuth callback parameters in URL
-        const urlParams = new URLSearchParams(window.location.search)
-        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
-        
-        const hasAuthCode = urlParams.get('code') || hashParams.get('access_token')
-        
-        if (hasAuthCode) {
-          console.log('OAuth callback detected, processing authentication...')
-          setIsLoggingIn(true)
+        try {
+          // Clean the URL first to prevent issues
+          window.history.replaceState({}, document.title, '/login')
           
-          // Let Supabase handle the OAuth callback
-          const { data, error } = await client.auth.getSession()
+          // Wait a moment for the auth to process
+          await new Promise(resolve => setTimeout(resolve, 1000))
           
-          if (error) {
-            console.error('OAuth callback error:', error)
-            setError('Authentication failed. Please try again.')
-            setIsLoggingIn(false)
-            
-            // Clean the URL
-            window.history.replaceState({}, document.title, window.location.pathname)
-            return
-          }
+          // Check session
+          const { data: session } = await client.auth.getSession()
+          console.log('Session after callback:', session)
           
-          if (data?.session) {
-            console.log('OAuth callback successful, session established')
-            
-            // Store auth token
-            localStorage.setItem('supabase-auth-token', data.session.access_token)
-            document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
-            
-            // Clean the URL
-            window.history.replaceState({}, document.title, window.location.pathname)
-            
-            // Force a small delay to ensure RedwoodJS auth catches up
-            setTimeout(() => {
-              redirectAttemptedRef.current = true
-              navigate(routes.home())
-            }, 100)
-            return
-          }
-        }
-        
-        // Regular session check (only if no callback parameters)
-        if (!hasAuthCode) {
-          // Rate limit checks
-          const lastCheck = parseInt(localStorage.getItem('last_session_check') || '0')
-          const now = Date.now()
-          
-          // Only check once every 10 seconds
-          if (now - lastCheck < 10000) {
-            console.log('Session checked recently, skipping')
-            return
-          }
-          
-          localStorage.setItem('last_session_check', now.toString())
-          console.log('Checking session status...')
-          
-          const { data } = await client.auth.getSession()
-          
-          if (data?.session) {
-            console.log('Active session found, redirecting to home page')
-            
-            // Store auth token
-            localStorage.setItem('supabase-auth-token', data.session.access_token)
-            document.cookie = `supabase-auth-token=${data.session.access_token};path=/;max-age=3600;SameSite=Lax`
-            
-            // Small delay to ensure RedwoodJS auth state updates
-            setTimeout(() => {
-              redirectAttemptedRef.current = true
-              navigate(routes.home())
-            }, 100)
+          if (session?.session?.user) {
+            console.log('Authentication successful, user:', session.session.user.email)
+            // Let RedwoodJS handle the redirect via the first useEffect
           } else {
-            console.log('No active session found')
-            setIsLoggingIn(false)
+            console.log('No session found after callback')
+            setError('Authentication failed. Please try again.')
           }
+        } catch (error) {
+          console.error('OAuth callback error:', error)
+          setError('Authentication failed. Please try again.')
+        } finally {
+          setIsLoggingIn(false)
         }
-      } catch (e) {
-        console.error('Auth flow error:', e)
-        setError('Error during authentication')
-        setIsLoggingIn(false)
       }
     }
-    
-    // Delay to avoid race conditions with RedwoodJS auth
-    sessionCheckTimeoutRef.current = setTimeout(() => {
-      handleAuthFlow()
-    }, 300)
-    
-    // Clean up timeout on unmount
-    return () => {
-      if (sessionCheckTimeoutRef.current) {
-        clearTimeout(sessionCheckTimeoutRef.current)
-      }
-    }
-  }, [loading, client.auth, navigate, isAuthenticated])
+
+    handleOAuthCallback()
+  }, [client, loading])
 
   // Handle Microsoft login button click
   const onLogin = async () => {
@@ -188,12 +70,6 @@ const LoginPage = () => {
       setError(null)
       console.log('Starting Microsoft login process...')
       
-      // Clear any redirect prevention flags (only in browser)
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('last_session_check')
-      }
-      redirectAttemptedRef.current = false
-
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'azure',
         options: {
@@ -201,7 +77,7 @@ const LoginPage = () => {
                      import.meta.env?.SUPABASE_AUTH_REDIRECT_URL || 
                      (typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'),
           scopes: 'email profile openid',
-          prompt: 'login', // Force login screen to appear
+          prompt: 'login',
         }
       })
 
@@ -211,7 +87,7 @@ const LoginPage = () => {
       }
 
       console.log('Login initiated successfully, redirecting to Microsoft...')
-      // OAuth redirect will happen automatically - don't set loading to false here
+      // OAuth redirect will happen automatically
     } catch (error) {
       console.error('Login process failed:', error)
       setError(error.message || 'An error occurred during login')
@@ -219,33 +95,20 @@ const LoginPage = () => {
     }
   }
 
-  // Manual refresh of auth session
+  // Manual refresh session (simplified)
   const refreshSession = async () => {
     try {
       setIsLoggingIn(true)
       setError(null)
       
-      console.log('Manually refreshing session...')
-      
       const { data, error } = await client.auth.refreshSession()
       
-      if (error) {
-        console.error('Session refresh error:', error)
-        throw error
+      if (error || !data?.session) {
+        throw new Error('Could not refresh session')
       }
       
-      if (data?.session) {
-        console.log('Session refreshed successfully')
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('supabase-auth-token', data.session.access_token)
-        }
-        redirectAttemptedRef.current = false
-        
-        // Try redirecting to home
-        navigate(routes.home())
-      } else {
-        throw new Error('No session returned')
-      }
+      console.log('Session refreshed successfully')
+      // Let the first useEffect handle the redirect
     } catch (error) {
       console.error('Session refresh failed:', error)
       setError('Could not refresh session. Please log in again.')
