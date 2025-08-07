@@ -32,7 +32,9 @@ const PROJECT_REPORTS_QUERY = gql`
       description
       blockers
       user {
+        id
         name
+        email
       }
       project {
         id
@@ -122,10 +124,12 @@ const ProjectReports = () => {
 
     // Team Performance
     const teamPerformance = updates.reduce((acc, update) => {
-      const userId = update.user.name
+      const userId = update.user.id
       if (!acc[userId]) {
         acc[userId] = {
-          name: userId,
+          id: update.user.id,
+          name: update.user.name,
+          email: update.user.email,
           totalUpdates: 0,
           totalHours: 0,
           projects: new Set(),
@@ -410,6 +414,105 @@ const ProjectReports = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Detailed Employee Status and Updates */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Employee Status & Updates</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Detailed view of employee daily updates and current status
+              </p>
+            </div>
+            <div className="space-y-6 p-6">
+              {reports.teamPerformance.map((member) => {
+                // Get recent updates for this member
+                const memberUpdates = data.dailyProjectUpdates
+                  .filter(update => update.user.id === member.id)
+                  .sort((a, b) => new Date(b.date) - new Date(a.date))
+                  .slice(0, 5) // Show last 5 updates
+
+                return (
+                  <div key={member.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="text-md font-semibold text-gray-900">{member.name}</h4>
+                        <p className="text-sm text-gray-600">{member.email}</p>
+                        <div className="flex items-center mt-2 space-x-4">
+                          <span className="text-sm text-gray-500">
+                            {member.totalUpdates} updates • {Math.round(member.totalHours)}h total
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {member.projects.length} project{member.projects.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Status Distribution */}
+                      <div className="flex space-x-2">
+                        {Object.entries(member.statusDistribution).map(([status, count]) => (
+                          <span key={status} className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+                            {status}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Projects assigned */}
+                    <div className="mb-4">
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Assigned Projects:</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {member.projects.map((project, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                            {project}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Recent Updates */}
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700 mb-3">Recent Updates:</h5>
+                      {memberUpdates.length > 0 ? (
+                        <div className="space-y-3">
+                          {memberUpdates.map((update, idx) => (
+                            <div key={update.id} className="bg-gray-50 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {update.project.name}
+                                  </span>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(update.status)}`}>
+                                    {update.status}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500 flex items-center space-x-2">
+                                  <span>{new Date(update.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
+                                  <span>•</span>
+                                  <span>{update.hoursWorked || 0}h</span>
+                                </div>
+                              </div>
+                              
+                              {update.description && (
+                                <p className="text-sm text-gray-700 mb-2">{update.description}</p>
+                              )}
+                              
+                              {update.blockers && (
+                                <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                                  <strong>Blockers:</strong> {update.blockers}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No recent updates found</p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </>

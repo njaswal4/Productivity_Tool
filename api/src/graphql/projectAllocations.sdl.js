@@ -31,6 +31,7 @@ export const schema = gql`
     role: String
     hoursAllocated: Float
     isActive: Boolean
+    allocatedBy: Int
   }
 
   input UpdateProjectAllocationInput {

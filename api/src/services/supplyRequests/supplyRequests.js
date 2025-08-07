@@ -1,0 +1,278 @@
+import { db } from 'src/lib/db'
+import { requireAuth } from 'src/lib/auth'
+import { ForbiddenError, ValidationError } from '@redwoodjs/graphql-server'
+import { context } from '@redwoodjs/graphql-server'
+
+export const supplyRequests = () => {
+  return db.supplyRequest.findMany({
+    include: {
+      user: true,
+      supply: {
+        include: {
+          category: true,
+        },
+      },
+    },
+  })
+}
+
+export const supplyRequest = ({ id }) => {
+  return db.supplyRequest.findUnique({
+    where: { id },
+    include: {
+      user: true,
+      supply: {
+        include: {
+          category: true,
+        },
+      },
+    },
+  })
+}
+
+// Get supply requests for the current user
+export const mySupplyRequests = () => {
+  requireAuth()
+  const userId = context.currentUser.id
+
+  return db.supplyRequest.findMany({
+    where: { userId },
+    include: {
+      user: true,
+      supply: {
+        include: {
+          category: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+// Get pending supply requests (for admins)
+export const pendingSupplyRequests = () => {
+  requireAuth()
+  // TODO: Add role-based access control when roles are implemented
+  
+  return db.supplyRequest.findMany({
+    where: { 
+      status: 'PENDING' 
+    },
+    include: {
+      user: true,
+      supply: {
+        include: {
+          category: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' }, // Oldest first for FIFO processing
+  })
+}
+
+export const createSupplyRequest = ({ input }) => {
+  requireAuth()
+  const userId = context.currentUser.id
+
+  return db.$transaction(async (tx) => {
+    // Validate supply exists
+    const supply = await tx.officeSupply.findUnique({
+      where: { id: input.supplyId }
+    })
+
+    if (!supply) {
+      throw new ValidationError('Office supply not found')
+    }
+
+    // Create the supply request
+    return tx.supplyRequest.create({
+      data: {
+        ...input,
+        userId,
+        status: 'PENDING',
+      },
+      include: {
+        user: true,
+        supply: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    })
+  })
+}
+
+export const updateSupplyRequest = ({ id, input }) => {
+  requireAuth()
+  const userId = context.currentUser.id
+
+  return db.$transaction(async (tx) => {
+    const existingRequest = await tx.supplyRequest.findUnique({ 
+      where: { id },
+      include: { user: true }
+    })
+
+    if (!existingRequest) {
+      throw new ValidationError('Supply request not found')
+    }
+
+    // Only allow the requester to update their own pending requests
+    if (existingRequest.userId !== userId && existingRequest.status !== 'PENDING') {
+      throw new ForbiddenError('You can only update your own pending requests')
+    }
+
+    // Prevent updating approved/rejected requests
+    if (existingRequest.status !== 'PENDING') {
+      throw new ValidationError('Cannot update non-pending requests')
+    }
+
+    return tx.supplyRequest.update({
+      data: input,
+      where: { id },
+      include: {
+        user: true,
+        supply: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    })
+  })
+}
+
+export const deleteSupplyRequest = ({ id }) => {
+  requireAuth()
+  const userId = context.currentUser.id
+
+  return db.$transaction(async (tx) => {
+    const existingRequest = await tx.supplyRequest.findUnique({ 
+      where: { id },
+      include: { user: true }
+    })
+
+    if (!existingRequest) {
+      throw new ValidationError('Supply request not found')
+    }
+
+    // Only allow the requester to delete their own pending requests
+    if (existingRequest.userId !== userId) {
+      throw new ForbiddenError('You can only delete your own requests')
+    }
+
+    // Prevent deleting approved requests
+    if (existingRequest.status === 'APPROVED') {
+      throw new ValidationError('Cannot delete approved requests')
+    }
+
+    return tx.supplyRequest.delete({
+      where: { id },
+    })
+  })
+}
+
+// Approve supply request (admin function)
+export const approveSupplyRequest = ({ id, approverNotes }) => {
+  requireAuth()
+  // TODO: Add role-based access control for admin users
+  
+  return db.$transaction(async (tx) => {
+    const request = await tx.supplyRequest.findUnique({
+      where: { id },
+      include: { supply: true }
+    })
+
+    if (!request) {
+      throw new ValidationError('Supply request not found')
+    }
+
+    if (request.status !== 'PENDING') {
+      throw new ValidationError('Only pending requests can be approved')
+    }
+
+    // Check if there's enough stock
+    if (request.supply.stockCount < request.quantityRequested) {
+      throw new ValidationError('Insufficient stock to fulfill this request')
+    }
+
+    // Update stock level
+    await tx.officeSupply.update({
+      where: { id: request.supplyId },
+      data: {
+        stockCount: request.supply.stockCount - request.quantityRequested,
+      },
+    })
+
+    // Update request status
+    return tx.supplyRequest.update({
+      where: { id },
+      data: {
+        status: 'APPROVED',
+        approvedAt: new Date(),
+        approverNotes,
+      },
+      include: {
+        user: true,
+        supply: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    })
+  })
+}
+
+// Reject supply request (admin function)
+export const rejectSupplyRequest = ({ id, approverNotes }) => {
+  requireAuth()
+  // TODO: Add role-based access control for admin users
+  
+  return db.supplyRequest.update({
+    where: { id },
+    data: {
+      status: 'REJECTED',
+      approvedAt: new Date(),
+      approverNotes,
+    },
+    include: {
+      user: true,
+      supply: {
+        include: {
+          category: true,
+        },
+      },
+    },
+  })
+}
+
+export const SupplyRequest = {
+  user: (_obj, { root }) => {
+    return db.supplyRequest
+      .findUnique({ where: { id: root?.id } })
+      .user()
+  },
+  
+  supply: (_obj, { root }) => {
+    return db.supplyRequest
+      .findUnique({ where: { id: root?.id } })
+      .supply()
+  },
+  
+  // Calculate total cost
+  totalCost: (obj) => {
+    if (obj.supply && obj.supply.unitPrice) {
+      return obj.quantityRequested * obj.supply.unitPrice
+    }
+    return null
+  },
+  
+  // Check if request is overdue (pending for more than 7 days)
+  isOverdue: (obj) => {
+    if (obj.status !== 'PENDING') return false
+    
+    const daysDiff = Math.floor((new Date() - new Date(obj.createdAt)) / (1000 * 60 * 60 * 24))
+    return daysDiff > 7
+  },
+}

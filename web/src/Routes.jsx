@@ -27,6 +27,11 @@ const Routes = () => {
         <Route path="/asset-tracker" page={AssetTrackerPage} name="assetTracker" />
         <Route path="/project-tracker" page={ProjectTrackerPage} name="projectTracker" />
         
+        {/* Office Supplies Management */}
+        <Route path="/office-supplies" page={OfficeSupplyOfficeSupplyInventoryPage} name="officeSupplies" />
+        <Route path="/supply-requests" page={OfficeSupplySupplyRequestsPage} name="supplyRequests" />
+        <Route path="/supply-categories" page={OfficeSupplySupplyCategoriesPage} name="supplyCategories" />
+        
         <Set wrap={ScaffoldLayout} title="Bookings" titleTo="bookings" buttonLabel="New Booking" buttonTo="newBooking">
           <Route path="/bookings/new" page={BookingNewBookingPage} name="newBooking" />
           <Route path="/bookings/{id:Int}/edit" page={BookingEditBookingPage} name="editBooking" />
@@ -44,6 +49,7 @@ const Routes = () => {
 
       <PrivateSet unauthenticated="login" roles={['ADMIN']}>
         <Route path="/admin-panel" page={AdminPanelPage} name="adminPanel" />
+        <Route path="/admin/supply-requests" page={OfficeSupplyAdminSupplyRequestsPage} name="adminSupplyRequests" />
       </PrivateSet>
 
       <Route notfound page={NotFoundPage} />

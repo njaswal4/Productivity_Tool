@@ -146,7 +146,7 @@ const ProjectDetailsDialog = ({ isOpen, onClose, project, onRefresh }) => {
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-gray-500">Start Date:</span>
                   <span className="text-sm text-gray-900">
-                    {new Date(project.startDate).toLocaleDateString()}
+                    {new Date(project.startDate).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
                   </span>
                 </div>
                 
@@ -154,7 +154,7 @@ const ProjectDetailsDialog = ({ isOpen, onClose, project, onRefresh }) => {
                   <div className="flex justify-between">
                     <span className="text-sm font-medium text-gray-500">End Date:</span>
                     <span className="text-sm text-gray-900">
-                      {new Date(project.endDate).toLocaleDateString()}
+                      {new Date(project.endDate).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
                     </span>
                   </div>
                 )}
@@ -267,7 +267,7 @@ const ProjectDetailsDialog = ({ isOpen, onClose, project, onRefresh }) => {
                           {allocation.hoursAllocated || 0}h
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {allocation.allocatedDate ? new Date(allocation.allocatedDate).toLocaleDateString() : 'N/A'}
+                          {allocation.allocatedDate ? new Date(allocation.allocatedDate).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -309,7 +309,7 @@ const ProjectDetailsDialog = ({ isOpen, onClose, project, onRefresh }) => {
                   Total daily updates: {project.dailyUpdates.length}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Last update: {new Date(project.dailyUpdates[0]?.updateDate).toLocaleDateString()}
+                  Last update: {new Date(project.dailyUpdates[0]?.updateDate).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                 </p>
               </div>
             </div>

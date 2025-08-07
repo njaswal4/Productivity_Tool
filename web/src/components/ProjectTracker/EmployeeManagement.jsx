@@ -290,7 +290,7 @@ const EmployeeManagement = () => {
                 <div><span className="font-medium">Designation:</span> {selectedEmployee.designation?.replace(/_/g, ' ') || 'Not set'}</div>
                 <div><span className="font-medium">Reporting Manager:</span> {selectedEmployee.reportingManagerUser?.name || 'Not assigned'}</div>
                 {selectedEmployee.dateOfJoining && (
-                  <div><span className="font-medium">Date of Joining:</span> {new Date(selectedEmployee.dateOfJoining).toLocaleDateString()}</div>
+                  <div><span className="font-medium">Date of Joining:</span> {new Date(selectedEmployee.dateOfJoining).toLocaleDateString('en-US', { timeZone: 'UTC' })}</div>
                 )}
               </div>
             </div>

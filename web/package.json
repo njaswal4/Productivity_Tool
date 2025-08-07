@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@capacitor/ios": "^7.4.0",
+    "@heroicons/react": "^2.2.0",
     "@redwoodjs/auth-dbauth-web": "8.6.1",
     "@redwoodjs/auth-supabase-web": "8.6.1",
     "@redwoodjs/forms": "8.6.1",

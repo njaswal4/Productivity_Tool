@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Metadata, useQuery, useMutation } from '@redwoodjs/web'
 import MeetingRoomsSection from './MeetingRoomsSection'
 import AdminVacationManager from 'src/components/AdminVacationManager/AdminVacationManager'
+import Header from 'src/components/Header/Header'
 
 const EXCEPTION_REQUESTS_QUERY = gql`
   query ExceptionRequests {
@@ -199,6 +200,7 @@ const AdminPanelPage = () => {
   return (
     <>
       <Metadata title="Admin Panel" description="Manage users and exception requests" />
+      <Header />
 
       {/* Delete User Dialog */}
       {showDeleteDialog && userToDelete && (
@@ -228,7 +230,7 @@ const AdminPanelPage = () => {
         </div>
       )}
 
-      <div className="mx-auto mt-10 max-w-7xl px-4">
+      <div className="mx-auto mt-32 max-w-7xl px-4">
         <h1 className="mb-10 text-center text-4xl font-extrabold tracking-tight text-blue-800">
           Admin Panel
         </h1>

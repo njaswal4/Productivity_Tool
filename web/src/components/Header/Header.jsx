@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useAuth } from 'src/auth'
 import { Link, routes } from '@redwoodjs/router'
-import { useMutation } from '@redwoodjs/web'
-
-
+import { useMutation, gql } from '@redwoodjs/web'
 
 const UPDATE_USER_MUTATION = gql`
   mutation UpdateUser($id: Int!, $input: UpdateUserInput!) {
@@ -15,10 +13,12 @@ const UPDATE_USER_MUTATION = gql`
   }
 `
 
-const Header = ({ isAdmin }) => {
+const Header = ({ isAdmin, showQuickAccess = false }) => {
   const { isAuthenticated, currentUser, logOut, hasRole } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [resourcesDropdownOpen, setResourcesDropdownOpen] = useState(false)
   const menuRef = useRef(null)
+  const resourcesDropdownRef = useRef(null)
 
   // Modal state for updating personal info
   const [showProfileModal, setShowProfileModal] = useState(false)
@@ -38,6 +38,9 @@ const Header = ({ isAdmin }) => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setMenuOpen(false)
+      }
+      if (resourcesDropdownRef.current && !resourcesDropdownRef.current.contains(event.target)) {
+        setResourcesDropdownOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -132,38 +135,125 @@ const Header = ({ isAdmin }) => {
         </div>
       )}
 
-      <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
-          {/* Logo */}
-          <div className="flex items-center gap-4">
-            <img src="https://2cretiv.com/wp-content/uploads/2024/10/WhatsApp-Image-2024-10-14-at-1.54.56-PM-4.jpeg"
-              className="flex h-10 w-40 rounded-full"
-              alt="Logo"
-              loading="lazy"
-              onClick={() => window.location.href = routes.home()}
-            />
-            <h2 className="font-bold"> 
-             Productivity Tool
-          </h2>
+      <header className="bg-white shadow-lg fixed top-0 left-0 right-0 z-50">
+        <div className="flex items-center justify-between px-6 py-4">
+          {/* Logo and Home */}
+          <div className="flex items-center gap-6">
+            <Link to={routes.home()} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <img src="/logo.jpg"
+                className="h-10 w-40 rounded-full object-cover"
+                alt="2Creative Logo"
+                loading="lazy"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-800">Productivity Tool</h1>
+                <p className="text-xs text-gray-500">2Creative Solutions</p>
+              </div>
+            </Link>
           </div>
 
+          {/* Main Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link
+              to={routes.home()}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium"
+            >
+              <i className="ri-home-4-line text-lg"></i>
+              <span>Home</span>
+            </Link>
+            
+            {/* Resources */}
+            <div className="relative" ref={resourcesDropdownRef}>
+              <button 
+                onClick={() => setResourcesDropdownOpen(!resourcesDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 font-medium"
+              >
+                <i className="ri-stack-line text-lg"></i>
+                <span>Resources</span>
+                <i className={`ri-arrow-down-s-line text-sm transition-transform duration-200 ${resourcesDropdownOpen ? 'rotate-180' : ''}`}></i>
+              </button>
+              {resourcesDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+                  <Link
+                    to={routes.assetTracker()}
+                    onClick={() => setResourcesDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors duration-200"
+                  >
+                    <i className="ri-computer-line text-lg"></i>
+                    <span>Assets</span>
+                  </Link>
+                  <Link
+                    to={routes.officeSupplies()}
+                    onClick={() => setResourcesDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors duration-200"
+                  >
+                    <i className="ri-archive-line text-lg"></i>
+                    <span>Supplies</span>
+                  </Link>
+                  <Link
+                    to={routes.supplyRequests()}
+                    onClick={() => setResourcesDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors duration-200"
+                  >
+                    <i className="ri-shopping-cart-line text-lg"></i>
+                    <span>Supply Requests</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <Link
+              to={routes.projectTracker()}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 hover:text-orange-600 hover:bg-orange-50 transition-all duration-200 font-medium"
+            >
+              <i className="ri-project-line text-lg"></i>
+              <span>Projects</span>
+            </Link>
+
+            {hasRole && hasRole('ADMIN') && (
+              <Link
+                to={routes.adminPanel()}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 transition-all duration-200 font-medium shadow-md"
+              >
+                <i className="ri-admin-line text-lg"></i>
+                <span>Admin</span>
+              </Link>
+            )}
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <button 
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <i className="ri-menu-line text-xl"></i>
+          </button>
+
           {/* Auth/User Section */}
-          <div className="flex items-center gap-4 relative">
+          <div className="hidden md:flex items-center gap-4 relative">
             {isAuthenticated ? (
               <div className="relative" ref={menuRef}>
                 <button
                   type="button"
                   onClick={() => setMenuOpen((open) => !open)}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-black hover:bg-orange-200 focus:outline-none"
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all duration-200"
                   aria-label="Account"
                 >
-                  <p className="text-white text-4xl">🧑‍💻</p>
-                  <i className="ri-account-circle-line text-3xl text-primary"></i>
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">
+                      {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : '�'}
+                    </span>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-medium text-gray-800">{currentUser?.name || 'User'}</div>
+                    <div className="text-xs text-gray-500">{hasRole && hasRole('ADMIN') ? 'Admin' : 'Employee'}</div>
+                  </div>
+                  <i className="ri-arrow-down-s-line text-gray-400"></i>
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <div className="text-xs text-gray-500 mb-1">Logged in as:</div>
+                      <div className="text-xs text-gray-500 mb-1">Signed in as</div>
                       <div className="font-semibold text-gray-800 truncate">{currentUser.email}</div>
                     </div>
                     <button
@@ -176,17 +266,18 @@ const Header = ({ isAdmin }) => {
                           email: currentUser?.email || '',
                         })
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                      className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
                     >
-                      Update Personal Info
+                      <i className="ri-user-settings-line"></i>
+                      Update Profile
                     </button>
-      
                     <button
                       type="button"
                       onClick={logOut}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-b-lg transition"
+                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-b-xl transition flex items-center gap-2"
                     >
-                      Logout
+                      <i className="ri-logout-circle-line"></i>
+                      Sign Out
                     </button>
                   </div>
                 )}
@@ -194,83 +285,112 @@ const Header = ({ isAdmin }) => {
             ) : (
               <Link
                 to={routes.login()}
-                className="px-3 py-1 bg-primary text-white rounded hover:bg-primary-dark transition"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
               >
-                Login
+                Sign In
               </Link>
             )}
           </div>
         </div>
-        <nav className="flex border-t border-gray-200">
-          <a
-            href="/"
-            className="flex-1 px-1 py-3 text-center text-sm font-medium text-primary border-b-2 border-primary"
-          >
-            <div className="w-5 h-5 mx-auto flex items-center justify-center">
-              <i className="ri-dashboard-line"></i>
-            </div>
-            <span className="mt-1 block">Dashboard</span>
-          </a>
-          <a
-            href="#bookings-section"
-            onClick={handleScroll('bookings-section')}
-            className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
-          >
-            <div className="w-5 h-5 mx-auto flex items-center justify-center">
-              <i className="ri-calendar-line"></i>
-            </div>
-            <span className="mt-1 block">Bookings</span>
-          </a>
-          <a
-            href="#attendance-section"
-            onClick={handleScroll('attendance-section')}
-            className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
-          >
-            <div className="w-5 h-5 mx-auto flex items-center justify-center">
-              <i className="ri-time-line"></i>
-            </div>
-            <span className="mt-1 block">Attendance</span>
-          </a>
-          <a
-            href="#vacation-section"
-            onClick={handleScroll('vacation-section')}
-            className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
-          >
-            <div className="w-5 h-5 mx-auto flex items-center justify-center">
-              <i className="ri-calendar-event-line"></i>
-            </div>
-            <span className="mt-1 block">Vacation</span>
-          </a>
-          <Link
-            to={routes.assetTracker()}
-            className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
-          >
-            <div className="w-5 h-5 mx-auto flex items-center justify-center">
-              <i className="ri-computer-line"></i>
-            </div>
-            <span className="mt-1 block">Assets</span>
-          </Link>
-          <Link
-            to={routes.projectTracker()}
-            className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
-          >
-            <div className="w-5 h-5 mx-auto flex items-center justify-center">
-              <i className="ri-project-line"></i>
-            </div>
-            <span className="mt-1 block">Projects</span>
-          </Link>
-          {hasRole && hasRole('ADMIN') && (
-            <Link
-              to={routes.adminPanel()}
-              className="flex-1 px-1 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-700"
-            >
-              <div className="w-5 h-5 mx-auto flex items-center justify-center">
-                <i className="ri-admin-line"></i>
+
+        {/* Mobile Navigation */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-gray-200 bg-white">
+            <div className="px-4 py-2 space-y-1">
+              <Link
+                to={routes.home()}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 font-medium"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="ri-home-4-line text-lg"></i>
+                <span>Home</span>
+              </Link>
+              <div className="space-y-1 pl-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-2">Resources</div>
+                <Link
+                  to={routes.assetTracker()}
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="ri-computer-line"></i>
+                  <span>Assets</span>
+                </Link>
+                <Link
+                  to={routes.officeSupplies()}
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="ri-archive-line"></i>
+                  <span>Supplies</span>
+                </Link>
+                <Link
+                  to={routes.supplyRequests()}
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="ri-shopping-cart-line"></i>
+                  <span>Supply Requests</span>
+                </Link>
               </div>
-              <span className="mt-1 block">Admin Panel</span>
-            </Link>
-          )}
-        </nav>
+              <Link
+                to={routes.projectTracker()}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 font-medium"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="ri-project-line text-lg"></i>
+                <span>Projects</span>
+              </Link>
+              {hasRole && hasRole('ADMIN') && (
+                <Link
+                  to={routes.adminPanel()}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 font-medium"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="ri-admin-line text-lg"></i>
+                  <span>Admin Panel</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Access Tab Bar - Only on Dashboard */}
+        {showQuickAccess && (
+          <div className="border-t border-gray-200 bg-gray-50">
+            <div className="flex overflow-x-auto">
+              <a
+                href="#bookings-section"
+                onClick={handleScroll('bookings-section')}
+                className="flex-shrink-0 px-6 py-3 text-center text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-white transition-all duration-200 border-b-2 border-transparent hover:border-blue-600"
+              >
+                <div className="flex items-center gap-2">
+                  <i className="ri-calendar-line"></i>
+                  <span>Bookings</span>
+                </div>
+              </a>
+              <a
+                href="#attendance-section"
+                onClick={handleScroll('attendance-section')}
+                className="flex-shrink-0 px-6 py-3 text-center text-sm font-medium text-gray-600 hover:text-green-600 hover:bg-white transition-all duration-200 border-b-2 border-transparent hover:border-green-600"
+              >
+                <div className="flex items-center gap-2">
+                  <i className="ri-time-line"></i>
+                  <span>Attendance</span>
+                </div>
+              </a>
+              <a
+                href="#vacation-section"
+                onClick={handleScroll('vacation-section')}
+                className="flex-shrink-0 px-6 py-3 text-center text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-white transition-all duration-200 border-b-2 border-transparent hover:border-purple-600"
+              >
+                <div className="flex items-center gap-2">
+                  <i className="ri-calendar-event-line"></i>
+                  <span>Vacation</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        )}
       </header>
     </>
   )

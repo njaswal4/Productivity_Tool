@@ -449,9 +449,9 @@ const GET_OFFICE_HOURS_QUERY = gql`
     <>
    
       <Metadata title="Dashboard" description="Dashboard page" />
-      <Header />
+      <Header showQuickAccess={true} />
   
-      <main className="relative pt-10 px-4 md:px-8 lg:px-12 h-screen">
+      <main className="relative pt-32 px-4 md:px-8 lg:px-12 h-screen">
      
             
          

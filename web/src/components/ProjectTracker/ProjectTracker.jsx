@@ -85,7 +85,7 @@ const ProjectTracker = () => {
     {
       variables: {
         userId: currentUser?.id,
-        date: new Date(selectedDate).toISOString(),
+        date: new Date(selectedDate + 'T12:00:00').toISOString(),
       },
       skip: !currentUser?.id,
     }
@@ -104,6 +104,7 @@ const ProjectTracker = () => {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: 'UTC',
     })
   }
 
@@ -147,55 +148,53 @@ const ProjectTracker = () => {
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Resource Allocation & Project Tracker</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Track daily allocations, project progress, and meeting schedules
-            </p>
-          </div>
-          
-          {/* Date Selector for Daily View */}
-          {activeTab === 'daily' && (
-            <div className="flex items-center space-x-4">
-              <label className="text-sm font-medium text-gray-700">Date:</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-32 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-8 mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Project Management
+              </h1>
+              <p className="text-gray-600 mt-2">Track daily allocations, project progress, and meeting schedules</p>
             </div>
-          )}
-        </div>
-      </div>
+            
+            {/* Date Selector for Daily View */}
+            {activeTab === 'daily' && (
+              <div className="flex items-center space-x-4 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/20">
+                <label className="text-sm font-semibold text-gray-700">Date:</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-white/80 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            )}
+          </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
+          {/* Tab Navigation */}
+          <div className="flex space-x-6 border-b border-white/20 pb-4 mb-6">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`font-medium pb-2 border-b-2 transition-colors duration-200 flex items-center gap-2 ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'text-blue-600 border-blue-600'
+                    : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.name}
+                <span>{tab.icon}</span>
+                <span>{tab.name}</span>
               </button>
             ))}
-          </nav>
+          </div>
         </div>
 
         {/* Tab Content */}
-        <div className="p-6">
+        <div className="space-y-6">
           {activeTab === 'daily' && (
             <DailyAllocation
               allocations={allocationsData?.dailyAllocations || []}

@@ -224,14 +224,14 @@ const ProjectManagement = ({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Start Date:</span>
                 <span className="font-medium">
-                  {new Date(project.startDate).toLocaleDateString()}
+                  {new Date(project.startDate).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                 </span>
               </div>
               {project.endDate && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">End Date:</span>
                   <span className="font-medium">
-                    {new Date(project.endDate).toLocaleDateString()}
+                    {new Date(project.endDate).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                   </span>
                 </div>
               )}

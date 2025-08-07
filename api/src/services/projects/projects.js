@@ -46,7 +46,7 @@ export const project = ({ id }) => {
             },
           },
         },
-        orderBy: { updateDate: 'desc' },
+        orderBy: { date: 'desc' },
       },
     },
   })

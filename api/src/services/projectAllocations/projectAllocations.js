@@ -23,7 +23,7 @@ export const projectAllocation = ({ id }) => {
       user: true,
       allocatedByUser: true,
       dailyUpdates: {
-        orderBy: { updateDate: 'desc' },
+        orderBy: { date: 'desc' },
       },
     },
   })
@@ -52,7 +52,7 @@ export const allocationsByProject = ({ projectId }) => {
       user: true,
       allocatedByUser: true,
       dailyUpdates: {
-        orderBy: { updateDate: 'desc' },
+        orderBy: { date: 'desc' },
         take: 5, // Last 5 updates
       },
     },
@@ -71,7 +71,7 @@ export const allocationsByUser = ({ userId }) => {
       },
       allocatedByUser: true,
       dailyUpdates: {
-        orderBy: { updateDate: 'desc' },
+        orderBy: { date: 'desc' },
         take: 5,
       },
     },
@@ -90,12 +90,9 @@ export const dailyAllocations = ({ userId, date }) => {
     where: {
       userId,
       isActive: true,
-      allocatedDate: {
-        lte: endOfDay,
-      },
       project: {
         status: {
-          in: ['Active', 'In Progress'],
+          in: ['ACTIVE', 'ON_HOLD'],
         },
       },
     },
@@ -118,7 +115,7 @@ export const dailyAllocations = ({ userId, date }) => {
       },
       dailyUpdates: {
         where: {
-          updateDate: {
+          date: {
             gte: startOfDay,
             lte: endOfDay,
           },

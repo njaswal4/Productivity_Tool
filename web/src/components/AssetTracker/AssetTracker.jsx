@@ -439,87 +439,107 @@ const AssetTracker = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Asset Tracker</h2>
-          <p className="text-gray-600 mt-1">Manage company assets and assignments</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-32 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-8 mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Asset Management
+              </h1>
+              <p className="text-gray-600 mt-2">Track and manage company assets and assignments</p>
+            </div>
+            <button
+              onClick={() => setRequestDialog({ isOpen: true })}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
+            >
+              <i className="ri-add-line text-lg"></i>
+              <span>Request Asset</span>
+            </button>
+          </div>
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('inventory')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'inventory'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Asset Inventory
-          </button>
-          <button
-            onClick={() => setActiveTab('assignments')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'assignments'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Active Assignments
-          </button>
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'requests'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            {isAdmin ? 'Asset Requests' : 'My Requests'}
-          </button>
-        </nav>
-      </div>
+          {/* Tab Navigation */}
+          <div className="flex space-x-6 border-b border-white/20 pb-4 mb-6">
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`font-medium pb-2 border-b-2 transition-colors duration-200 ${
+                activeTab === 'inventory'
+                  ? 'text-blue-600 border-blue-600'
+                  : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
+              }`}
+            >
+              Asset Inventory
+            </button>
+            <button
+              onClick={() => setActiveTab('assignments')}
+              className={`font-medium pb-2 border-b-2 transition-colors duration-200 ${
+                activeTab === 'assignments'
+                  ? 'text-blue-600 border-blue-600'
+                  : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
+              }`}
+            >
+              Active Assignments
+            </button>
+            <button
+              onClick={() => setActiveTab('requests')}
+              className={`font-medium pb-2 border-b-2 transition-colors duration-200 ${
+                activeTab === 'requests'
+                  ? 'text-blue-600 border-blue-600'
+                  : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
+              }`}
+            >
+              {isAdmin ? 'Asset Requests' : 'My Requests'}
+            </button>
+          </div>
+        </div>
 
       {/* Asset Inventory Tab */}
       {activeTab === 'inventory' && (
         <>
           {/* Filters */}
-          <div className="flex gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
-              </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Categories</option>
-                {categoriesData?.assetCategories?.map(category => (
-                  <option key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Statuses</option>
-                <option value="Available">Available</option>
-                <option value="Assigned">Assigned</option>
-                <option value="Under Repair">Under Repair</option>
-                <option value="Retired">Retired</option>
-              </select>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                >
+                  <option value="all">All Categories</option>
+                  {categoriesData?.assetCategories?.map(category => (
+                    <option key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="Available">Available</option>
+                  <option value="Assigned">Assigned</option>
+                  <option value="Under Repair">Under Repair</option>
+                  <option value="Retired">Retired</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setSelectedCategory('all')
+                    setSelectedStatus('all')
+                  }}
+                  className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200"
+                >
+                  Clear Filters
+                </button>
+              </div>
             </div>
           </div>
 
@@ -968,6 +988,7 @@ const AssetTracker = () => {
         request={approvalDialog.request}
         availableAssets={assetsData?.assets || []}
       />
+      </div>
     </div>
   )
 }

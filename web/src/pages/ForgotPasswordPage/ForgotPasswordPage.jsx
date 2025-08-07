@@ -48,25 +48,25 @@ const ForgotPasswordPage = () => {
                 <Form onSubmit={onSubmit} className="rw-form-wrapper">
                   <div className="text-left">
                     <Label
-                      name="username"
+                      name="Email"
                       className="rw-label"
                       errorClassName="rw-label rw-label-error"
                     >
-                      Username
+                      Email
                     </Label>
                     <TextField
-                      name="username"
+                      name="email"
                       className="rw-input"
                       errorClassName="rw-input rw-input-error"
                       ref={usernameRef}
                       validation={{
                         required: {
                           value: true,
-                          message: 'Username is required',
+                          message: 'Email is required',
                         },
                       }}
                     />
-                    <FieldError name="username" className="rw-field-error" />
+                    <FieldError name="email" className="rw-field-error" />
                   </div>
                   <div className="rw-button-group">
                     <Submit className="rw-button rw-button-blue">Submit</Submit>

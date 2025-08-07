@@ -75,7 +75,7 @@ const DailyUpdateDialog = ({
                 {existingUpdate ? 'Update' : 'Submit'} Daily Status
               </h3>
               <p className="text-sm text-gray-500 mt-1">
-                {allocation.project.name} ({allocation.project.code}) - {new Date(selectedDate).toLocaleDateString()}
+                {allocation.project.name} ({allocation.project.code}) - {new Date(selectedDate).toLocaleDateString('en-US', { timeZone: 'UTC' })}
               </p>
               {/* Hours Allocation Info */}
               <div className="mt-2 p-2 bg-blue-50 rounded-md">

@@ -71,6 +71,7 @@ model User {
   vacationRequests VacationRequest[]
   assetAssignments    AssetAssignment[]
   assetRequests       AssetRequest[]
+  supplyRequests      SupplyRequest[]
   
   selectedMeetingRoomId Int? 
   selectedMeetingRoom   MeetingRoom? @relation("UserSelectedMeetingRoom", fields: [selectedMeetingRoomId], references: [id])
@@ -399,5 +400,44 @@ model DailyProjectUpdate {
   updatedAt       DateTime          @updatedAt
   
   @@unique([allocationId, date])
+}
+
+// Office Supplies Management System Models
+model OfficeSupplyCategory {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  supplies    OfficeSupply[]
+}
+
+model OfficeSupply {
+  id          Int                   @id @default(autoincrement())
+  name        String
+  description String?
+  stockCount  Int
+  unitPrice   Float
+  categoryId  Int
+  category    OfficeSupplyCategory  @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  requests    SupplyRequest[]
+}
+
+model SupplyRequest {
+  id                Int          @id @default(autoincrement())
+  quantityRequested Int          // Renamed from quantity
+  justification     String       // Renamed from reason  
+  urgency           String       @default("MEDIUM") // LOW, MEDIUM, HIGH
+  status            String       @default("PENDING") // PENDING, APPROVED, REJECTED, FULFILLED
+  approvedAt        DateTime?    // When request was approved/rejected
+  approverNotes     String?      // Admin notes
+  totalCost         Float?       // Calculated total cost
+  isOverdue         Boolean      @default(false) // If request is overdue
+  userId            Int
+  user              User         @relation(fields: [userId], references: [id])
+  supplyId          Int
+  supply            OfficeSupply @relation(fields: [supplyId], references: [id])
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }
 
