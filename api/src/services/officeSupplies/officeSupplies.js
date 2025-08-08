@@ -1,5 +1,7 @@
 import { db } from 'src/lib/db'
 import { ForbiddenError, ValidationError } from '@redwoodjs/graphql-server'
+import { requireAuth } from 'src/lib/auth'
+import { context } from '@redwoodjs/graphql-server'
 
 export const officeSupplies = () => {
   return db.officeSupply.findMany({
@@ -19,6 +21,14 @@ export const officeSupply = ({ id }) => {
 }
 
 export const createOfficeSupply = ({ input }) => {
+  requireAuth()
+  
+  // Check if user is admin
+  const isAdmin = context.currentUser.roles?.includes('ADMIN')
+  if (!isAdmin) {
+    throw new ForbiddenError('Only administrators can create office supplies')
+  }
+  
   // Validate minimum stock and reorder level
   if (input.reorderLevel && input.minimumStock && input.reorderLevel < input.minimumStock) {
     throw new ValidationError('Reorder level cannot be less than minimum stock')
@@ -33,6 +43,14 @@ export const createOfficeSupply = ({ input }) => {
 }
 
 export const updateOfficeSupply = ({ id, input }) => {
+  requireAuth()
+  
+  // Check if user is admin
+  const isAdmin = context.currentUser.roles?.includes('ADMIN')
+  if (!isAdmin) {
+    throw new ForbiddenError('Only administrators can update office supplies')
+  }
+  
   // Validate minimum stock and reorder level
   if (input.reorderLevel && input.minimumStock && input.reorderLevel < input.minimumStock) {
     throw new ValidationError('Reorder level cannot be less than minimum stock')
@@ -45,6 +63,14 @@ export const updateOfficeSupply = ({ id, input }) => {
 }
 
 export const deleteOfficeSupply = ({ id }) => {
+  requireAuth()
+  
+  // Check if user is admin
+  const isAdmin = context.currentUser.roles?.includes('ADMIN')
+  if (!isAdmin) {
+    throw new ForbiddenError('Only administrators can delete office supplies')
+  }
+  
   return db.officeSupply.delete({
     where: { id },
   })
@@ -52,6 +78,14 @@ export const deleteOfficeSupply = ({ id }) => {
 
 // Bulk update stock levels
 export const updateStockLevel = ({ id, quantity, operation }) => {
+  requireAuth()
+  
+  // Check if user is admin
+  const isAdmin = context.currentUser.roles?.includes('ADMIN')
+  if (!isAdmin) {
+    throw new ForbiddenError('Only administrators can update stock levels')
+  }
+  
   return db.$transaction(async (tx) => {
     const supply = await tx.officeSupply.findUnique({ where: { id } })
     

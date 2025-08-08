@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@redwoodjs/web'
 import { toast } from '@redwoodjs/web/toast'
 import { Link, routes } from '@redwoodjs/router'
 import { gql } from 'graphql-tag'
+import { useAuth } from 'src/auth'
 import { 
   MagnifyingGlassIcon, 
   PlusIcon,
@@ -69,10 +70,13 @@ const UPDATE_OFFICE_SUPPLY = gql`
 `
 
 const SupplyInventory = () => {
+  const { hasRole } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingSupply, setEditingSupply] = useState(null)
+
+  const isAdmin = hasRole && hasRole('ADMIN')
 
   const { data, loading, error, refetch } = useQuery(GET_OFFICE_SUPPLIES)
 
@@ -144,7 +148,7 @@ const SupplyInventory = () => {
 
   const categories = [...new Set(data?.officeSupplies?.map(s => s.category))]
 
-  if (showForm) {
+  if (showForm && isAdmin) {
     return (
       <OfficeSupplyForm
         supply={editingSupply}
@@ -167,9 +171,11 @@ const SupplyInventory = () => {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
             <div>
               <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Supply Management
+                {isAdmin ? 'Supply Management' : 'Office Supplies'}
               </h1>
-              <p className="text-gray-600 mt-2 text-sm md:text-base">Manage inventory and track supply requests</p>
+              <p className="text-gray-600 mt-2 text-sm md:text-base">
+                {isAdmin ? 'Manage inventory and track supply requests' : 'Browse available supplies and make requests'}
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
               <Link
@@ -179,13 +185,15 @@ const SupplyInventory = () => {
                 <ShoppingCartIcon className="h-4 md:h-5 w-4 md:w-5" />
                 <span>Request Supplies</span>
               </Link>
-              <button
-                onClick={() => setShowForm(true)}
-                className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 text-sm md:text-base"
-              >
-                <PlusIcon className="h-4 md:h-5 w-4 md:w-5" />
-                <span>Add New Supply</span>
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 text-sm md:text-base"
+                >
+                  <PlusIcon className="h-4 md:h-5 w-4 md:w-5" />
+                  <span>Add New Supply</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -331,7 +339,9 @@ const SupplyInventory = () => {
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Stock Count</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Unit Price</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Total Value</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                      {isAdmin && (
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200/20">
@@ -361,27 +371,29 @@ const SupplyInventory = () => {
                             ${((supply.stockCount * (supply.unitPrice || 0)).toFixed(2))}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => {
-                                setEditingSupply(supply)
-                                setShowForm(true)
-                              }}
-                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors duration-200"
-                              title="Edit Supply"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(supply.id, supply.name)}
-                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                              title="Delete Supply"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
+                        {isAdmin && (
+                          <td className="px-6 py-4">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingSupply(supply)
+                                  setShowForm(true)
+                                }}
+                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors duration-200"
+                                title="Edit Supply"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(supply.id, supply.name)}
+                                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
+                                title="Delete Supply"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -400,25 +412,27 @@ const SupplyInventory = () => {
                           {supply.category.name}
                         </span>
                       </div>
-                      <div className="flex space-x-1 ml-4">
-                        <button
-                          onClick={() => {
-                            setEditingSupply(supply)
-                            setShowForm(true)
-                          }}
-                          className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors duration-200"
-                          title="Edit Supply"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(supply.id, supply.name)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                          title="Delete Supply"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex space-x-1 ml-4">
+                          <button
+                            onClick={() => {
+                              setEditingSupply(supply)
+                              setShowForm(true)
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors duration-200"
+                            title="Edit Supply"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(supply.id, supply.name)}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
+                            title="Delete Supply"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-gray-200/20">

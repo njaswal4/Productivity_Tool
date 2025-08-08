@@ -4,6 +4,14 @@ import { ForbiddenError, ValidationError } from '@redwoodjs/graphql-server'
 import { context } from '@redwoodjs/graphql-server'
 
 export const supplyRequests = () => {
+  requireAuth()
+  
+  // Check if user is admin
+  const isAdmin = context.currentUser.roles?.includes('ADMIN')
+  if (!isAdmin) {
+    throw new ForbiddenError('Only administrators can view all supply requests')
+  }
+  
   return db.supplyRequest.findMany({
     include: {
       user: true,
@@ -52,7 +60,12 @@ export const mySupplyRequests = () => {
 // Get pending supply requests (for admins)
 export const pendingSupplyRequests = () => {
   requireAuth()
-  // TODO: Add role-based access control when roles are implemented
+  
+  // Check if user is admin
+  const isAdmin = context.currentUser.roles?.includes('ADMIN')
+  if (!isAdmin) {
+    throw new ForbiddenError('Only administrators can view pending supply requests')
+  }
   
   return db.supplyRequest.findMany({
     where: { 
@@ -175,7 +188,12 @@ export const deleteSupplyRequest = ({ id }) => {
 // Approve supply request (admin function)
 export const approveSupplyRequest = ({ id, approverNotes }) => {
   requireAuth()
-  // TODO: Add role-based access control for admin users
+  
+  // Check if user is admin
+  const isAdmin = context.currentUser.roles?.includes('ADMIN')
+  if (!isAdmin) {
+    throw new ForbiddenError('Only administrators can approve supply requests')
+  }
   
   return db.$transaction(async (tx) => {
     const request = await tx.supplyRequest.findUnique({
@@ -227,7 +245,12 @@ export const approveSupplyRequest = ({ id, approverNotes }) => {
 // Reject supply request (admin function)
 export const rejectSupplyRequest = ({ id, approverNotes }) => {
   requireAuth()
-  // TODO: Add role-based access control for admin users
+  
+  // Check if user is admin
+  const isAdmin = context.currentUser.roles?.includes('ADMIN')
+  if (!isAdmin) {
+    throw new ForbiddenError('Only administrators can reject supply requests')
+  }
   
   return db.supplyRequest.update({
     where: { id },
