@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useQuery, gql } from '@redwoodjs/web'
 import { useAuth } from 'src/auth'
 import ProjectManagement from './ProjectManagement'
@@ -77,6 +77,8 @@ const ProjectTracker = () => {
   const { currentUser } = useAuth()
   const [activeTab, setActiveTab] = useState('daily')
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 })
+  const tabsRef = useRef({})
 
   const isAdmin = currentUser?.roles?.includes('ADMIN')
 
@@ -147,49 +149,73 @@ const ProjectTracker = () => {
     { id: 'reports', name: 'Reports', icon: '📊' },
   ]
 
+  // Update indicator position when active tab changes
+  useEffect(() => {
+    const activeTabElement = tabsRef.current[activeTab]
+    if (activeTabElement) {
+      const { offsetLeft, offsetWidth } = activeTabElement
+      setIndicatorStyle({
+        left: offsetLeft,
+        width: offsetWidth
+      })
+    }
+  }, [activeTab, isAdmin])
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-32 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-32 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-8 mb-8">
-          <div className="flex justify-between items-start mb-6">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-4 md:p-8 mb-8">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Project Management
               </h1>
-              <p className="text-gray-600 mt-2">Track daily allocations, project progress, and meeting schedules</p>
+              <p className="text-gray-600 mt-2 text-sm md:text-base">Track daily allocations, project progress, and meeting schedules</p>
             </div>
             
             {/* Date Selector for Daily View */}
             {activeTab === 'daily' && (
-              <div className="flex items-center space-x-4 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/20">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/20 w-full sm:w-auto">
                 <label className="text-sm font-semibold text-gray-700">Date:</label>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-white/80 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="bg-white/80 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
                 />
               </div>
             )}
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex space-x-6 border-b border-white/20 pb-4 mb-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`font-medium pb-2 border-b-2 transition-colors duration-200 flex items-center gap-2 ${
-                  activeTab === tab.id
-                    ? 'text-blue-600 border-blue-600'
-                    : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.name}</span>
-              </button>
-            ))}
+          <div className="relative">
+            <div className="flex flex-wrap gap-2 sm:gap-6 border-b border-white/20 pb-4 mb-6 overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  ref={(el) => (tabsRef.current[tab.id] = el)}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`font-medium pb-2 transition-colors duration-200 flex items-center gap-2 whitespace-nowrap px-2 sm:px-0 text-sm md:text-base relative ${
+                    activeTab === tab.id
+                      ? 'text-blue-600'
+                      : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  <span className="text-base md:text-lg">{tab.icon}</span>
+                  <span className="hidden sm:inline">{tab.name}</span>
+                  <span className="sm:hidden text-xs">{tab.name.split(' ')[0]}</span>
+                </button>
+              ))}
+            </div>
+            {/* Animated sliding indicator */}
+            <div 
+              className="absolute bottom-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 transition-all duration-300 ease-out rounded-full shadow-sm"
+              style={{
+                left: `${indicatorStyle.left}px`,
+                width: `${indicatorStyle.width}px`,
+              }}
+            />
           </div>
         </div>
 

@@ -47,6 +47,7 @@ const UPDATE_EMPLOYEE_MUTATION = gql`
 const EmployeeManagement = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [editDialog, setEditDialog] = useState({ isOpen: false })
+  const [viewMode, setViewMode] = useState('table') // 'table' or 'details'
 
   const { data, loading, refetch } = useQuery(EMPLOYEES_QUERY)
 
@@ -207,16 +208,23 @@ const EmployeeManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => {
+                        console.log('Edit clicked for employee:', employee.name) // Debug log
                         setSelectedEmployee(employee)
                         setEditDialog({ isOpen: true })
+                        setViewMode('table')
                       }}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
+                      className="text-blue-600 hover:text-blue-900 mr-3 font-medium"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => setSelectedEmployee(employee)}
-                      className="text-green-600 hover:text-green-900"
+                      onClick={() => {
+                        console.log('View Details clicked for employee:', employee.name) // Debug log
+                        setSelectedEmployee(employee)
+                        setEditDialog({ isOpen: false })
+                        setViewMode('details')
+                      }}
+                      className="text-green-600 hover:text-green-900 font-medium"
                     >
                       View Details
                     </button>
@@ -228,72 +236,258 @@ const EmployeeManagement = () => {
         </div>
       </div>
 
-      {/* Employee Details Panel */}
-      {selectedEmployee && !editDialog.isOpen && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {selectedEmployee.name} - Project Assignments
-            </h3>
-            <button
-              onClick={() => setSelectedEmployee(null)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          </div>
+      {/* Employee Details Panel with Slide Animation */}
+      {selectedEmployee && viewMode === 'details' && !editDialog.isOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-start justify-end bg-black/20 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedEmployee(null)
+              setViewMode('table')
+            }
+          }}
+        >
+          <div className="w-full max-w-2xl h-full bg-white shadow-2xl transform transition-all duration-500 ease-out translate-x-0 animate-slide-in-right overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {selectedEmployee.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">Employee Details & Project Assignments</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedEmployee(null)
+                    setViewMode('table')
+                  }}
+                  className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 group transform hover:scale-105 border-2 border-white"
+                  title="Close Details"
+                >
+                  <span className="text-2xl font-bold leading-none group-hover:rotate-90 transition-transform duration-200">×</span>
+                </button>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium text-gray-900 mb-3">Current Project Allocations</h4>
-              <div className="space-y-3">
-                {selectedEmployee.projectAllocations
-                  .filter(allocation => allocation.isActive)
-                  .map((allocation) => (
-                    <div key={allocation.id} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h5 className="font-medium text-gray-900">
-                            {allocation.project.name}
-                          </h5>
-                          <p className="text-sm text-gray-600">
-                            Role: {allocation.role}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-900">
-                            {allocation.hoursAllocated}h/day
+            <div className="p-6 space-y-6">
+              {/* Employee Information Section */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border border-blue-100">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <i className="ri-user-line text-blue-600"></i>
+                  Employee Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
+                      <span className="font-medium text-gray-600">Email:</span> 
+                      <span className="text-gray-900">{selectedEmployee.email}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
+                      <span className="font-medium text-gray-600">Employee ID:</span> 
+                      <span className="text-gray-900">{selectedEmployee.employeeId || 'Not set'}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
+                      <span className="font-medium text-gray-600">Department:</span> 
+                      <span className="text-gray-900">{selectedEmployee.department?.replace('_', ' ') || 'Not set'}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
+                      <span className="font-medium text-gray-600">Designation:</span> 
+                      <span className="text-gray-900">{selectedEmployee.designation?.replace(/_/g, ' ') || 'Not set'}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
+                      <span className="font-medium text-gray-600">Reporting Manager:</span> 
+                      <span className="text-gray-900">{selectedEmployee.reportingManagerUser?.name || 'Not assigned'}</span>
+                    </div>
+                    {selectedEmployee.dateOfJoining && (
+                      <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
+                        <span className="font-medium text-gray-600">Date of Joining:</span> 
+                        <span className="text-gray-900">{new Date(selectedEmployee.dateOfJoining).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200 text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-1">
+                    {getActiveProjectsCount(selectedEmployee.projectAllocations)}
+                  </div>
+                  <div className="text-sm text-blue-700 font-medium">Active Projects</div>
+                </div>
+                <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl border border-green-200 text-center">
+                  <div className="text-3xl font-bold text-green-600 mb-1">
+                    {getTotalHours(selectedEmployee.projectAllocations)}h
+                  </div>
+                  <div className="text-sm text-green-700 font-medium">Total Hours/Day</div>
+                </div>
+              </div>
+
+              {/* Current Project Allocations */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <i className="ri-briefcase-line text-green-600"></i>
+                  Current Project Allocations
+                </h4>
+                <div className="space-y-3">
+                  {selectedEmployee.projectAllocations
+                    .filter(allocation => allocation.isActive)
+                    .map((allocation) => (
+                      <div key={allocation.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-gray-900 mb-1">
+                              {allocation.project.name}
+                            </h5>
+                            <p className="text-sm text-gray-600 mb-2">
+                              <i className="ri-user-star-line mr-1"></i>
+                              Role: {allocation.role}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <i className="ri-code-line mr-1"></i>
+                              Project Code: {allocation.project.code}
+                            </p>
                           </div>
-                          <div className={`text-xs px-2 py-1 rounded-full ${
-                            allocation.project.status === 'ACTIVE' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {allocation.project.status}
+                          <div className="text-right ml-4">
+                            <div className="text-lg font-bold text-gray-900 mb-1">
+                              {allocation.hoursAllocated}h/day
+                            </div>
+                            <div className={`text-xs px-3 py-1 rounded-full font-medium ${
+                              allocation.project.status === 'ACTIVE' 
+                                ? 'bg-green-100 text-green-800 border border-green-200' 
+                                : 'bg-gray-100 text-gray-800 border border-gray-200'
+                            }`}>
+                              {allocation.project.status}
+                            </div>
                           </div>
                         </div>
                       </div>
+                    ))}
+                  {selectedEmployee.projectAllocations.filter(a => a.isActive).length === 0 && (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
+                      <i className="ri-briefcase-line text-4xl text-gray-300 mb-2 block"></i>
+                      <p className="text-sm text-gray-500 italic">No active project allocations</p>
                     </div>
-                  ))}
-                {selectedEmployee.projectAllocations.filter(a => a.isActive).length === 0 && (
-                  <p className="text-sm text-gray-500">No active project allocations</p>
-                )}
+                  )}
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div>
-              <h4 className="font-medium text-gray-900 mb-3">Employee Information</h4>
-              <div className="space-y-2 text-sm">
-                <div><span className="font-medium">Email:</span> {selectedEmployee.email}</div>
-                <div><span className="font-medium">Employee ID:</span> {selectedEmployee.employeeId || 'Not set'}</div>
-                <div><span className="font-medium">Department:</span> {selectedEmployee.department?.replace('_', ' ') || 'Not set'}</div>
-                <div><span className="font-medium">Designation:</span> {selectedEmployee.designation?.replace(/_/g, ' ') || 'Not set'}</div>
-                <div><span className="font-medium">Reporting Manager:</span> {selectedEmployee.reportingManagerUser?.name || 'Not assigned'}</div>
-                {selectedEmployee.dateOfJoining && (
-                  <div><span className="font-medium">Date of Joining:</span> {new Date(selectedEmployee.dateOfJoining).toLocaleDateString('en-US', { timeZone: 'UTC' })}</div>
-                )}
-              </div>
+      {/* Edit Employee Dialog */}
+      {editDialog.isOpen && selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Employee</h3>
+              <button
+                onClick={() => setEditDialog({ isOpen: false })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
             </div>
+            
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const formData = new FormData(e.target)
+                updateEmployee({
+                  variables: {
+                    id: selectedEmployee.id,
+                    input: {
+                      name: formData.get('name'),
+                      department: formData.get('department'),
+                      designation: formData.get('designation'),
+                      employeeId: formData.get('employeeId'),
+                    }
+                  }
+                })
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  defaultValue={selectedEmployee.name || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Employee ID
+                </label>
+                <input
+                  type="text"
+                  name="employeeId"
+                  defaultValue={selectedEmployee.employeeId || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Department
+                </label>
+                <select
+                  name="department"
+                  defaultValue={selectedEmployee.department || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(dept => (
+                    <option key={dept} value={dept}>
+                      {dept.replace('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Designation
+                </label>
+                <select
+                  name="designation"
+                  defaultValue={selectedEmployee.designation || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Designation</option>
+                  {designations.map(designation => (
+                    <option key={designation} value={designation}>
+                      {designation.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditDialog({ isOpen: false })}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
