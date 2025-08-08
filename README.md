@@ -426,14 +426,6 @@ query GetProjects { projects { id name budget allocatedHours } }
 mutation UpdateProject($id: Int!, $input: UpdateProjectInput!) { updateProject(id: $id, input: $input) { id } }
 ```
 
-## 🤝 Contributing
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and commit: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
 
 ### Code Standards
 - **ESLint**: Follow the configured ESLint rules
