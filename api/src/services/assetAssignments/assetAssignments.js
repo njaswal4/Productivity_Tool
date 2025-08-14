@@ -53,6 +53,219 @@ export const activeAssetAssignments = (args, { context }) => {
   })
 }
 
+export const myAssetAssignments = (args, { context }) => {
+  requireAuth({}, context)
+  return db.assetAssignment.findMany({
+    where: {
+      userId: parseInt(context.currentUser.id),
+      status: 'Active',
+    },
+    include: {
+      asset: {
+        include: {
+          category: true,
+        },
+      },
+      user: true,
+    },
+    orderBy: {
+      issueDate: 'desc',
+    },
+  })
+}
+
+export const myAssetAssignmentReport = async ({ startDate, endDate }, { context }) => {
+  requireAuth({}, context)
+  const userId = parseInt(context.currentUser.id)
+
+  // Set default date range if not provided (last 6 months)
+  const endDateTime = endDate ? new Date(endDate) : new Date()
+  const startDateTime = startDate ? new Date(startDate) : new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000)
+
+  // Get all assignments for the user within date range
+  const assignments = await db.assetAssignment.findMany({
+    where: {
+      userId: userId,
+      issueDate: {
+        gte: startDateTime,
+        lte: endDateTime,
+      },
+    },
+    include: {
+      asset: {
+        include: {
+          category: true,
+        },
+      },
+      user: true,
+    },
+    orderBy: {
+      issueDate: 'desc',
+    },
+  })
+
+  // Calculate statistics
+  const totalAssignments = assignments.length
+  const activeAssignments = assignments.filter(a => a.status === 'Active').length
+  const returnedAssignments = assignments.filter(a => a.status === 'Returned').length
+  const overdueAssignments = assignments.filter(a => 
+    a.status === 'Active' && 
+    a.expectedReturnDate && 
+    new Date(a.expectedReturnDate) < new Date()
+  ).length
+
+  // Group by asset category
+  const categoryStats = {}
+  assignments.forEach(assignment => {
+    const categoryName = assignment.asset.category.name
+    if (!categoryStats[categoryName]) {
+      categoryStats[categoryName] = {
+        categoryName,
+        count: 0,
+        activeCount: 0,
+        returnedCount: 0,
+      }
+    }
+    categoryStats[categoryName].count++
+    if (assignment.status === 'Active') {
+      categoryStats[categoryName].activeCount++
+    } else if (assignment.status === 'Returned') {
+      categoryStats[categoryName].returnedCount++
+    }
+  })
+
+  // Group by month for monthly stats
+  const monthlyStats = {}
+  assignments.forEach(assignment => {
+    const date = new Date(assignment.issueDate)
+    const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`
+    const monthName = date.toLocaleDateString('en-US', { month: 'long' })
+    const year = date.getFullYear()
+
+    if (!monthlyStats[monthKey]) {
+      monthlyStats[monthKey] = {
+        month: monthName,
+        year: year,
+        assignedCount: 0,
+        returnedCount: 0,
+      }
+    }
+    monthlyStats[monthKey].assignedCount++
+    if (assignment.returnDate && new Date(assignment.returnDate) >= startDateTime && new Date(assignment.returnDate) <= endDateTime) {
+      monthlyStats[monthKey].returnedCount++
+    }
+  })
+
+  return {
+    totalAssignments,
+    activeAssignments,
+    returnedAssignments,
+    overdueAssignments,
+    assignments,
+    assetsByCategory: Object.values(categoryStats),
+    monthlyStats: Object.values(monthlyStats).sort((a, b) => {
+      const dateA = new Date(a.year, new Date(Date.parse(a.month +" 1, 2012")).getMonth())
+      const dateB = new Date(b.year, new Date(Date.parse(b.month +" 1, 2012")).getMonth())
+      return dateA - dateB
+    }),
+  }
+}
+
+export const allUsersAssetReport = async ({ startDate, endDate }, { context }) => {
+  requireAuth({ roles: ['ADMIN'] }, context)
+
+  // Set default date range if not provided (last 6 months)
+  const endDateTime = endDate ? new Date(endDate) : new Date()
+  const startDateTime = startDate ? new Date(startDate) : new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000)
+
+  // Get all assignments for all users within date range
+  const assignments = await db.assetAssignment.findMany({
+    where: {
+      issueDate: {
+        gte: startDateTime,
+        lte: endDateTime,
+      },
+    },
+    include: {
+      asset: {
+        include: {
+          category: true,
+        },
+      },
+      user: true,
+    },
+    orderBy: {
+      issueDate: 'desc',
+    },
+  })
+
+  // Calculate statistics
+  const totalAssignments = assignments.length
+  const activeAssignments = assignments.filter(a => a.status === 'Active').length
+  const returnedAssignments = assignments.filter(a => a.status === 'Returned').length
+  const overdueAssignments = assignments.filter(a => 
+    a.status === 'Active' && 
+    a.expectedReturnDate && 
+    new Date(a.expectedReturnDate) < new Date()
+  ).length
+
+  // Group by asset category
+  const categoryStats = {}
+  assignments.forEach(assignment => {
+    const categoryName = assignment.asset.category.name
+    if (!categoryStats[categoryName]) {
+      categoryStats[categoryName] = {
+        categoryName,
+        count: 0,
+        activeCount: 0,
+        returnedCount: 0,
+      }
+    }
+    categoryStats[categoryName].count++
+    if (assignment.status === 'Active') {
+      categoryStats[categoryName].activeCount++
+    } else if (assignment.status === 'Returned') {
+      categoryStats[categoryName].returnedCount++
+    }
+  })
+
+  // Group by month for monthly stats
+  const monthlyStats = {}
+  assignments.forEach(assignment => {
+    const date = new Date(assignment.issueDate)
+    const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`
+    const monthName = date.toLocaleDateString('en-US', { month: 'long' })
+    const year = date.getFullYear()
+
+    if (!monthlyStats[monthKey]) {
+      monthlyStats[monthKey] = {
+        month: monthName,
+        year: year,
+        assignedCount: 0,
+        returnedCount: 0,
+      }
+    }
+    monthlyStats[monthKey].assignedCount++
+    if (assignment.returnDate && new Date(assignment.returnDate) >= startDateTime && new Date(assignment.returnDate) <= endDateTime) {
+      monthlyStats[monthKey].returnedCount++
+    }
+  })
+
+  return {
+    totalAssignments,
+    activeAssignments,
+    returnedAssignments,
+    overdueAssignments,
+    assignments,
+    assetsByCategory: Object.values(categoryStats),
+    monthlyStats: Object.values(monthlyStats).sort((a, b) => {
+      const dateA = new Date(a.year, new Date(Date.parse(a.month +" 1, 2012")).getMonth())
+      const dateB = new Date(b.year, new Date(Date.parse(b.month +" 1, 2012")).getMonth())
+      return dateA - dateB
+    }),
+  }
+}
+
 export const assetAssignmentsByUser = ({ userId }, { context }) => {
   requireAuth({}, context)
   return db.assetAssignment.findMany({
@@ -173,17 +386,26 @@ export const updateAssetAssignment = ({ id, input }, { context }) => {
 }
 
 export const returnAsset = async ({ assignmentId, input }, { context }) => {
-  requireAuth({ roles: ['ADMIN'] }, context)
+  requireAuth({}, context)
   
   const assignment = await db.assetAssignment.findUnique({
     where: { id: assignmentId },
     include: {
       asset: true,
+      user: true,
     },
   })
 
   if (!assignment) {
     throw new Error('Assignment not found')
+  }
+
+  // Check if user is admin or owns the assignment
+  const isAdmin = context.currentUser?.roles?.includes('ADMIN')
+  const isOwner = assignment.userId === parseInt(context.currentUser?.id)
+  
+  if (!isAdmin && !isOwner) {
+    throw new Error('You can only return your own assets')
   }
 
   if (assignment.status !== 'Active') {

@@ -73,6 +73,32 @@ const ACTIVE_ASSIGNMENTS_QUERY = gql`
   }
 `
 
+const MY_ASSIGNMENTS_QUERY = gql`
+  query MyAssignmentsQuery {
+    myAssetAssignments {
+      id
+      issueDate
+      expectedReturnDate
+      status
+      department
+      asset {
+        id
+        assetId
+        name
+        model
+        category {
+          name
+        }
+      }
+      user {
+        id
+        name
+        email
+      }
+    }
+  }
+`
+
 const ASSET_REQUESTS_QUERY = gql`
   query AssetRequestsQuery {
     assetRequests {
@@ -197,9 +223,11 @@ const AssetTracker = () => {
 
   const { data: assetsData, loading: assetsLoading, refetch: refetchAssets } = useQuery(ASSETS_QUERY)
   const { data: categoriesData, loading: categoriesLoading } = useQuery(ASSET_CATEGORIES_QUERY)
-  const { data: assignmentsData, loading: assignmentsLoading, refetch: refetchAssignments } = useQuery(ACTIVE_ASSIGNMENTS_QUERY)
   
   const isAdmin = currentUser?.roles?.includes('ADMIN')
+  const { data: assignmentsData, loading: assignmentsLoading, refetch: refetchAssignments } = useQuery(
+    isAdmin ? ACTIVE_ASSIGNMENTS_QUERY : MY_ASSIGNMENTS_QUERY
+  )
   const { data: requestsData, loading: requestsLoading, refetch: refetchRequests } = useQuery(
     isAdmin ? ASSET_REQUESTS_QUERY : MY_ASSET_REQUESTS_QUERY
   )
@@ -259,7 +287,8 @@ const AssetTracker = () => {
   })
 
   const handleReturnAsset = async (assignmentId) => {
-    const assignment = assignmentsData?.activeAssetAssignments?.find(a => a.id === assignmentId)
+    const assignments = isAdmin ? assignmentsData?.activeAssetAssignments : assignmentsData?.myAssetAssignments
+    const assignment = assignments?.find(a => a.id === assignmentId)
     if (!assignment) return
     
     setReturnDialog({ isOpen: true, assignment })
@@ -479,7 +508,7 @@ const AssetTracker = () => {
                   : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
               }`}
             >
-              Active Assignments
+              {isAdmin ? 'Active Assignments' : 'My Assets'}
             </button>
             <button
               onClick={() => setActiveTab('requests')}
@@ -692,9 +721,11 @@ const AssetTracker = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Asset
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Assigned To
-                    </th>
+                    {isAdmin && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Assigned To
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Department
                     </th>
@@ -710,7 +741,7 @@ const AssetTracker = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {assignmentsData?.activeAssetAssignments?.map((assignment) => (
+                  {(isAdmin ? assignmentsData?.activeAssetAssignments : assignmentsData?.myAssetAssignments)?.map((assignment) => (
                     <tr key={assignment.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
@@ -725,16 +756,18 @@ const AssetTracker = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {assignment.user.name || assignment.user.email}
+                      {isAdmin && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {assignment.user.name || assignment.user.email}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {assignment.user.email}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {assignment.user.email}
-                          </div>
-                        </div>
-                      </td>
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap">
                         {assignment.department ? (
                           <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -757,13 +790,22 @@ const AssetTracker = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {currentUser?.roles?.includes('ADMIN') && (
+                        {isAdmin ? (
                           <button
                             onClick={() => handleReturnAsset(assignment.id)}
                             className="text-indigo-600 hover:text-indigo-900"
                           >
                             Return Asset
                           </button>
+                        ) : parseInt(assignment.user.id) === parseInt(currentUser?.id) ? (
+                          <button
+                            onClick={() => handleReturnAsset(assignment.id)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            Return My Asset
+                          </button>
+                        ) : (
+                          <span className="text-gray-400">-</span>
                         )}
                       </td>
                     </tr>
@@ -773,9 +815,11 @@ const AssetTracker = () => {
             </div>
           )}
 
-          {assignmentsData?.activeAssetAssignments?.length === 0 && (
+          {(isAdmin ? assignmentsData?.activeAssetAssignments : assignmentsData?.myAssetAssignments)?.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-gray-500">No active asset assignments found.</p>
+              <p className="text-gray-500">
+                {isAdmin ? 'No active asset assignments found.' : 'You don\'t have any assigned assets.'}
+              </p>
             </div>
           )}
         </>
@@ -879,11 +923,17 @@ const AssetTracker = () => {
                             <div className="text-sm text-gray-500">
                               {request.specificAsset.name} - {request.specificAsset.model}
                             </div>
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 mt-1">
+                              Specific Asset
+                            </span>
                           </div>
                         ) : request.assetCategory ? (
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                            {request.assetCategory.name}
-                          </span>
+                          <div>
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                              {request.assetCategory.name}
+                            </span>
+                            <div className="text-xs text-gray-500 mt-1">Category Request</div>
+                          </div>
                         ) : (
                           <span className="text-gray-400">Any available</span>
                         )}

@@ -19,10 +19,37 @@ export const schema = gql`
     updatedAt: DateTime!
   }
 
+  type AssetAssignmentReport {
+    totalAssignments: Int!
+    activeAssignments: Int!
+    returnedAssignments: Int!
+    overdueAssignments: Int!
+    assignments: [AssetAssignment!]!
+    assetsByCategory: [AssetCategoryStats!]!
+    monthlyStats: [MonthlyAssetStats!]!
+  }
+
+  type AssetCategoryStats {
+    categoryName: String!
+    count: Int!
+    activeCount: Int!
+    returnedCount: Int!
+  }
+
+  type MonthlyAssetStats {
+    month: String!
+    year: Int!
+    assignedCount: Int!
+    returnedCount: Int!
+  }
+
   type Query {
     assetAssignments: [AssetAssignment!]! @requireAuth
     assetAssignment(id: Int!): AssetAssignment @requireAuth
     activeAssetAssignments: [AssetAssignment!]! @requireAuth
+    myAssetAssignments: [AssetAssignment!]! @requireAuth
+    myAssetAssignmentReport(startDate: DateTime, endDate: DateTime): AssetAssignmentReport! @requireAuth
+    allUsersAssetReport(startDate: DateTime, endDate: DateTime): AssetAssignmentReport! @requireAuth(roles: ["ADMIN"])
     assetAssignmentsByUser(userId: Int!): [AssetAssignment!]! @requireAuth
     assetAssignmentsByAsset(assetId: Int!): [AssetAssignment!]! @requireAuth
     assetHistory(assetId: Int!): [AssetAssignment!]! @requireAuth
@@ -63,7 +90,7 @@ export const schema = gql`
     returnAsset(
       assignmentId: Int!
       input: ReturnAssetInput!
-    ): AssetAssignment! @requireAuth(roles: ["ADMIN"])
+    ): AssetAssignment! @requireAuth
     deleteAssetAssignment(id: Int!): AssetAssignment!
       @requireAuth(roles: ["ADMIN"])
   }

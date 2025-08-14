@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { Metadata, useQuery, useMutation } from '@redwoodjs/web'
+import { Link } from '@redwoodjs/router'
+import { 
+  FolderIcon, 
+  DocumentTextIcon, 
+  BuildingOfficeIcon 
+} from '@heroicons/react/24/outline'
 import MeetingRoomsSection from './MeetingRoomsSection'
 import AdminVacationManager from 'src/components/AdminVacationManager/AdminVacationManager'
+import OutlookEmailTestComponent from 'src/components/OutlookEmailTestComponent/OutlookEmailTestComponent'
 import Header from 'src/components/Header/Header'
 
 const EXCEPTION_REQUESTS_QUERY = gql`
@@ -234,6 +241,59 @@ const AdminPanelPage = () => {
         <h1 className="mb-10 text-center text-4xl font-extrabold tracking-tight text-blue-800">
           Admin Panel
         </h1>
+
+        {/* Multi-Domain Email Testing System */}
+        <div className="mb-10">
+          <OutlookEmailTestComponent />
+        </div>
+
+        {/* Admin Quick Access */}
+        <div className="mb-10 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-8">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-6">
+            Admin Quick Access
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link 
+              to="/admin/supply-categories"
+              className="flex items-center p-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              <div className="flex items-center">
+                <FolderIcon className="h-6 w-6 mr-3" />
+                <div>
+                  <h3 className="font-semibold">Manage Categories</h3>
+                  <p className="text-sm text-green-100">Add, edit & organize supply categories</p>
+                </div>
+              </div>
+            </Link>
+            
+            <Link 
+              to="/admin/supply-requests"
+              className="flex items-center p-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              <div className="flex items-center">
+                <DocumentTextIcon className="h-6 w-6 mr-3" />
+                <div>
+                  <h3 className="font-semibold">Supply Requests</h3>
+                  <p className="text-sm text-blue-100">Review & approve supply requests</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link 
+              to="/office-supplies"
+              className="flex items-center p-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              <div className="flex items-center">
+                <BuildingOfficeIcon className="h-6 w-6 mr-3" />
+                <div>
+                  <h3 className="font-semibold">Inventory</h3>
+                  <p className="text-sm text-purple-100">Manage office supply inventory</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
           {/* Manage Users Section */}
           <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">

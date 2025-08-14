@@ -50,6 +50,7 @@ const Routes = () => {
       <PrivateSet unauthenticated="login" roles={['ADMIN']}>
         <Route path="/admin-panel" page={AdminPanelPage} name="adminPanel" />
         <Route path="/admin/supply-requests" page={OfficeSupplyAdminSupplyRequestsPage} name="adminSupplyRequests" />
+        <Route path="/admin/supply-categories" page={OfficeSupplySupplyCategoriesPage} name="adminSupplyCategories" />
       </PrivateSet>
 
       <Route notfound page={NotFoundPage} />

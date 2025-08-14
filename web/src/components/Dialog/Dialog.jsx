@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const Dialog = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null
@@ -339,6 +339,22 @@ const ApprovalDialog = ({ isOpen, onClose, onApprove, request, availableAssets }
   const [fulfillmentNotes, setFulfillmentNotes] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Auto-select the specific asset when dialog opens
+  React.useEffect(() => {
+    if (isOpen && request?.specificAsset) {
+      // Check if the specific asset is available
+      const specificAsset = availableAssets?.find(asset => 
+        asset.id === request.specificAsset.id && asset.status === 'Available'
+      )
+      if (specificAsset) {
+        setSelectedAsset(request.specificAsset.id.toString())
+      }
+    } else if (isOpen && !request?.specificAsset) {
+      // Reset selection for category-based requests
+      setSelectedAsset('')
+    }
+  }, [isOpen, request, availableAssets])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -363,12 +379,15 @@ const ApprovalDialog = ({ isOpen, onClose, onApprove, request, availableAssets }
 
   // Filter assets based on request type
   const filteredAssets = availableAssets?.filter(asset => {
-    if (request?.specificAssetId) {
-      return asset.id === request.specificAssetId
+    if (request?.specificAsset) {
+      // For specific asset requests, show only that asset if it's available
+      return asset.id === request.specificAsset.id && asset.status === 'Available'
     }
-    if (request?.assetCategoryId) {
-      return asset.categoryId === request.assetCategoryId && asset.status === 'Available'
+    if (request?.assetCategory?.id) {
+      // For category requests, show all available assets in that category
+      return asset.category?.id === request.assetCategory.id && asset.status === 'Available'
     }
+    // For general requests, show all available assets
     return asset.status === 'Available'
   }) || []
 
@@ -389,7 +408,10 @@ const ApprovalDialog = ({ isOpen, onClose, onApprove, request, availableAssets }
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assign Asset {request?.specificAssetId ? '' : '(Optional)'}
+              {request?.specificAsset ? 
+                'Asset Assignment (Specific Asset Requested)' : 
+                'Assign Asset (Optional)'
+              }
             </label>
             <select
               value={selectedAsset}
@@ -397,16 +419,43 @@ const ApprovalDialog = ({ isOpen, onClose, onApprove, request, availableAssets }
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             >
-              <option value="">Approve without immediate assignment</option>
-              {filteredAssets.map(asset => (
-                <option key={asset.id} value={asset.id.toString()}>
-                  {asset.assetId} - {asset.name} ({asset.model})
-                </option>
-              ))}
+              {request?.specificAsset ? (
+                filteredAssets.length > 0 ? (
+                  <>
+                    <option value="">Don't assign the requested asset</option>
+                    {filteredAssets.map(asset => (
+                      <option key={asset.id} value={asset.id.toString()}>
+                        {asset.assetId} - {asset.name} ({asset.model}) - REQUESTED ASSET
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option value="">Requested asset is not available</option>
+                )
+              ) : (
+                <>
+                  <option value="">Approve without immediate assignment</option>
+                  {filteredAssets.map(asset => (
+                    <option key={asset.id} value={asset.id.toString()}>
+                      {asset.assetId} - {asset.name} ({asset.model})
+                    </option>
+                  ))}
+                </>
+              )}
             </select>
-            {filteredAssets.length === 0 && (
+            {filteredAssets.length === 0 && request?.specificAsset && (
+              <p className="text-sm text-red-600 mt-1">
+                The requested specific asset is not available for assignment
+              </p>
+            )}
+            {filteredAssets.length === 0 && !request?.specificAsset && (
               <p className="text-sm text-yellow-600 mt-1">
                 No available assets found for this request type
+              </p>
+            )}
+            {request?.specificAsset && filteredAssets.length > 0 && (
+              <p className="text-sm text-blue-600 mt-1">
+                This user requested a specific asset. It has been automatically selected for assignment.
               </p>
             )}
           </div>

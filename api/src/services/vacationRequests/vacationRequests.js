@@ -1,4 +1,9 @@
 import { db } from 'src/lib/db'
+import { 
+  sendVacationRequestApprovalEmail, 
+  sendVacationRequestRejectionEmail,
+  sendVacationRequestNotificationToAdmins
+} from 'src/lib/emailService'
 
 export const vacationRequests = () => {
   return db.vacationRequest.findMany({
@@ -35,12 +40,27 @@ export const userVacationRequests = (_args, { context }) => {
 }
 
 export const createVacationRequest = ({ input }, { context }) => {
-  const userId = context.currentUser.id
-  return db.vacationRequest.create({
-    data: {
-      ...input,
-      userId,
-    },
+  return db.$transaction(async (tx) => {
+    const userId = context.currentUser.id
+    
+    // Create the vacation request
+    const newRequest = await tx.vacationRequest.create({
+      data: {
+        ...input,
+        userId,
+      },
+      include: {
+        user: true,
+      },
+    })
+
+    // Send notification to admins (run async without blocking the response)
+    sendVacationRequestNotificationToAdmins(newRequest.user, newRequest)
+      .catch(error => {
+        console.error('Failed to send admin notification for vacation request:', error)
+      })
+
+    return newRequest
   })
 }
 
@@ -66,19 +86,42 @@ export const updateVacationRequest = ({ id, input }, { context }) => {
   })
 }
 
-export const approveVacationRequest = ({ id }) => {
-  return db.vacationRequest.update({
+export const approveVacationRequest = async ({ id }) => {
+  const updatedRequest = await db.vacationRequest.update({
     data: { status: 'Approved' },
     where: { id },
+    include: { user: true },
   })
+
+  // Send approval email notification
+  try {
+    await sendVacationRequestApprovalEmail(updatedRequest.user, updatedRequest)
+    console.log('✅ Approval email sent for vacation request:', id)
+  } catch (emailError) {
+    console.error('⚠️ Failed to send approval email:', emailError)
+    // Don't fail the entire operation if email fails
+  }
+
+  return updatedRequest
 }
 
-export const rejectVacationRequest = ({ id }) => {
-  return db.vacationRequest.update({
+export const rejectVacationRequest = async ({ id }) => {
+  const updatedRequest = await db.vacationRequest.update({
     data: { status: 'Rejected' },
     where: { id },
     include: { user: true },
   })
+
+  // Send rejection email notification
+  try {
+    await sendVacationRequestRejectionEmail(updatedRequest.user, updatedRequest)
+    console.log('✅ Rejection email sent for vacation request:', id)
+  } catch (emailError) {
+    console.error('⚠️ Failed to send rejection email:', emailError)
+    // Don't fail the entire operation if email fails
+  }
+
+  return updatedRequest
 }
 
 // Example: Make sure the delete service returns all fields needed by the cache

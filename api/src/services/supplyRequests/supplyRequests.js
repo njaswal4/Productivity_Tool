@@ -2,6 +2,11 @@ import { db } from 'src/lib/db'
 import { requireAuth } from 'src/lib/auth'
 import { ForbiddenError, ValidationError } from '@redwoodjs/graphql-server'
 import { context } from '@redwoodjs/graphql-server'
+import { 
+  sendSupplyRequestApprovalEmail, 
+  sendSupplyRequestRejectionEmail,
+  sendSupplyRequestNotificationToAdmins
+} from 'src/lib/emailService'
 
 export const supplyRequests = () => {
   requireAuth()
@@ -90,7 +95,10 @@ export const createSupplyRequest = ({ input }) => {
   return db.$transaction(async (tx) => {
     // Validate supply exists
     const supply = await tx.officeSupply.findUnique({
-      where: { id: input.supplyId }
+      where: { id: input.supplyId },
+      include: {
+        category: true,
+      },
     })
 
     if (!supply) {
@@ -98,7 +106,7 @@ export const createSupplyRequest = ({ input }) => {
     }
 
     // Create the supply request
-    return tx.supplyRequest.create({
+    const newRequest = await tx.supplyRequest.create({
       data: {
         ...input,
         userId,
@@ -113,6 +121,14 @@ export const createSupplyRequest = ({ input }) => {
         },
       },
     })
+
+    // Send notification to admins (run async without blocking the response)
+    sendSupplyRequestNotificationToAdmins(newRequest.user, newRequest, supply)
+      .catch(error => {
+        console.error('Failed to send admin notification for supply request:', error)
+      })
+
+    return newRequest
   })
 }
 
@@ -186,7 +202,7 @@ export const deleteSupplyRequest = ({ id }) => {
 }
 
 // Approve supply request (admin function)
-export const approveSupplyRequest = ({ id, approverNotes }) => {
+export const approveSupplyRequest = async ({ id, approverNotes }) => {
   requireAuth()
   
   // Check if user is admin
@@ -198,7 +214,14 @@ export const approveSupplyRequest = ({ id, approverNotes }) => {
   return db.$transaction(async (tx) => {
     const request = await tx.supplyRequest.findUnique({
       where: { id },
-      include: { supply: true }
+      include: { 
+        supply: {
+          include: {
+            category: true,
+          },
+        },
+        user: true
+      }
     })
 
     if (!request) {
@@ -223,7 +246,7 @@ export const approveSupplyRequest = ({ id, approverNotes }) => {
     })
 
     // Update request status
-    return tx.supplyRequest.update({
+    const updatedRequest = await tx.supplyRequest.update({
       where: { id },
       data: {
         status: 'APPROVED',
@@ -239,11 +262,22 @@ export const approveSupplyRequest = ({ id, approverNotes }) => {
         },
       },
     })
+
+    // Send approval email notification
+    try {
+      await sendSupplyRequestApprovalEmail(updatedRequest.user, updatedRequest, approverNotes)
+      console.log('✅ Approval email sent for supply request:', id)
+    } catch (emailError) {
+      console.error('⚠️ Failed to send approval email:', emailError)
+      // Don't fail the entire operation if email fails
+    }
+
+    return updatedRequest
   })
 }
 
 // Reject supply request (admin function)
-export const rejectSupplyRequest = ({ id, approverNotes }) => {
+export const rejectSupplyRequest = async ({ id, approverNotes }) => {
   requireAuth()
   
   // Check if user is admin
@@ -252,7 +286,7 @@ export const rejectSupplyRequest = ({ id, approverNotes }) => {
     throw new ForbiddenError('Only administrators can reject supply requests')
   }
   
-  return db.supplyRequest.update({
+  const updatedRequest = await db.supplyRequest.update({
     where: { id },
     data: {
       status: 'REJECTED',
@@ -268,6 +302,17 @@ export const rejectSupplyRequest = ({ id, approverNotes }) => {
       },
     },
   })
+
+  // Send rejection email notification
+  try {
+    await sendSupplyRequestRejectionEmail(updatedRequest.user, updatedRequest, approverNotes)
+    console.log('✅ Rejection email sent for supply request:', id)
+  } catch (emailError) {
+    console.error('⚠️ Failed to send rejection email:', emailError)
+    // Don't fail the entire operation if email fails
+  }
+
+  return updatedRequest
 }
 
 export const SupplyRequest = {

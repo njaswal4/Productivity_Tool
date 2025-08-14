@@ -3,12 +3,14 @@ import { useQuery, useMutation } from '@redwoodjs/web'
 import { toast } from '@redwoodjs/web/toast'
 import { gql } from 'graphql-tag'
 import { Form, FormError, FieldError, Label, TextField, TextAreaField, Submit } from '@redwoodjs/forms'
+import { useAuth } from 'src/auth'
 import { 
   PlusIcon,
   PencilIcon,
   TrashIcon,
   FolderIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  CogIcon
 } from '@heroicons/react/24/outline'
 
 const GET_CATEGORIES = gql`
@@ -17,7 +19,6 @@ const GET_CATEGORIES = gql`
       id
       name
       description
-      createdAt
       supplies {
         id
         name
@@ -58,6 +59,9 @@ const DELETE_CATEGORY = gql`
 const CategoryManager = () => {
   const [showForm, setShowForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
+  const { currentUser, hasRole } = useAuth()
+  
+  const isAdmin = hasRole('ADMIN')
 
   const { data, loading, error, refetch } = useQuery(GET_CATEGORIES)
 
@@ -121,22 +125,82 @@ const CategoryManager = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
       <div className="max-w-6xl mx-auto">
+        
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading categories...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-800">Error Loading Categories</h3>
+                <p className="text-red-600">{error.message}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Non-Admin Notice */}
+        {!loading && !error && !isAdmin && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600 mr-3" />
+              <div>
+                <h3 className="text-lg font-semibold text-yellow-800">View Only Access</h3>
+                <p className="text-yellow-700">You can view supply categories, but admin privileges are required to add, edit, or delete categories. Contact your administrator for access.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && (
+        <>
         {/* Header */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-8 mb-8">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Supply Categories
-              </h1>
-              <p className="text-gray-600 mt-2">Organize your office supplies into categories</p>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  Supply Categories
+                </h1>
+                {isAdmin && (
+                  <div className="flex items-center px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-semibold rounded-full">
+                    <CogIcon className="h-4 w-4 mr-1" />
+                    Admin Mode
+                  </div>
+                )}
+              </div>
+              <p className="text-gray-600">
+                {isAdmin 
+                  ? "Organize and manage office supply categories with full admin privileges" 
+                  : "View office supply categories and organization"
+                }
+              </p>
             </div>
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
-            >
-              <PlusIcon className="h-5 w-5" />
-              <span>Add Category</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
+              >
+                <PlusIcon className="h-5 w-5" />
+                <span>Add Category</span>
+              </button>
+            )}
+            {!isAdmin && (
+              <div className="px-6 py-3 bg-gray-100 text-gray-500 rounded-xl border border-gray-200 flex items-center space-x-2">
+                <FolderIcon className="h-5 w-5" />
+                <span>View Only</span>
+              </div>
+            )}
           </div>
 
           {/* Stats */}
@@ -185,8 +249,8 @@ const CategoryManager = () => {
           </div>
         </div>
 
-        {/* Category Form Modal */}
-        {showForm && (
+        {/* Category Form Modal - Admin Only */}
+        {showForm && isAdmin && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-8 max-w-2xl w-full">
               <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-6">
@@ -286,22 +350,29 @@ const CategoryManager = () => {
                         <p className="text-sm text-gray-600">{category.supplies?.length || 0} supplies</p>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(category)}
-                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors duration-200"
-                        title="Edit Category"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(category)}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                        title="Delete Category"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(category)}
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors duration-200"
+                          title="Edit Category"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(category)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
+                          title="Delete Category"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                    {!isAdmin && (
+                      <div className="px-3 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
+                        View Only
+                      </div>
+                    )}
                   </div>
 
                   {category.description && (
@@ -326,17 +397,13 @@ const CategoryManager = () => {
                       </div>
                     </div>
                   )}
-
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs text-gray-500">
-                      Created: {new Date(category.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   )

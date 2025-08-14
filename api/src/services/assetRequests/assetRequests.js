@@ -1,4 +1,9 @@
 import { db } from 'src/lib/db'
+import { 
+  sendAssetRequestApprovalEmail, 
+  sendAssetRequestRejectionEmail,
+  sendAssetRequestNotificationToAdmins
+} from 'src/lib/emailService'
 
 export const assetRequests = () => {
   return db.assetRequest.findMany({
@@ -73,20 +78,31 @@ export const pendingAssetRequests = () => {
 }
 
 export const createAssetRequest = ({ input }, { context }) => {
-  return db.assetRequest.create({
-    data: {
-      ...input,
-      userId: context.currentUser.id,
-    },
-    include: {
-      user: true,
-      assetCategory: true,
-      specificAsset: {
-        include: {
-          category: true,
+  return db.$transaction(async (tx) => {
+    // Create the asset request
+    const newRequest = await tx.assetRequest.create({
+      data: {
+        ...input,
+        userId: context.currentUser.id,
+      },
+      include: {
+        user: true,
+        assetCategory: true,
+        specificAsset: {
+          include: {
+            category: true,
+          },
         },
       },
-    },
+    })
+
+    // Send notification to admins (run async without blocking the response)
+    sendAssetRequestNotificationToAdmins(newRequest.user, newRequest, newRequest.assetCategory)
+      .catch(error => {
+        console.error('Failed to send admin notification for asset request:', error)
+      })
+
+    return newRequest
   })
 }
 
@@ -163,6 +179,7 @@ export const approveAssetRequest = async ({ id, input }, { context }) => {
     })
 
     // If a specific asset is assigned, create the assignment
+    let assignedAsset = null
     if (input.assignAssetId) {
       // Check if the asset is available
       const asset = await prisma.asset.findUnique({
@@ -184,6 +201,9 @@ export const approveAssetRequest = async ({ id, input }, { context }) => {
           userId: request.userId,
           issuedBy: approverName,
           issueNotes: `Assigned through asset request: ${request.reason}`,
+          status: 'Active',
+          condition: 'Good', // Default condition
+          issueDate: new Date(),
         },
       })
 
@@ -198,16 +218,32 @@ export const approveAssetRequest = async ({ id, input }, { context }) => {
         where: { id },
         data: { status: 'Fulfilled' },
       })
+
+      assignedAsset = asset
+    }
+
+    // Send approval email notification
+    try {
+      await sendAssetRequestApprovalEmail(
+        updatedRequest.user, 
+        updatedRequest, 
+        assignedAsset, 
+        input.fulfillmentNotes
+      )
+      console.log('✅ Approval email sent for asset request:', id)
+    } catch (emailError) {
+      console.error('⚠️ Failed to send approval email:', emailError)
+      // Don't fail the entire operation if email fails
     }
 
     return updatedRequest
   })
 }
 
-export const rejectAssetRequest = ({ id, input }, { context }) => {
+export const rejectAssetRequest = async ({ id, input }, { context }) => {
   const approverName = context.currentUser.name || context.currentUser.email
 
-  return db.assetRequest.update({
+  const updatedRequest = await db.assetRequest.update({
     where: { id },
     data: {
       status: 'Rejected',
@@ -225,6 +261,21 @@ export const rejectAssetRequest = ({ id, input }, { context }) => {
       },
     },
   })
+
+  // Send rejection email notification
+  try {
+    await sendAssetRequestRejectionEmail(
+      updatedRequest.user, 
+      updatedRequest, 
+      input.rejectionReason
+    )
+    console.log('✅ Rejection email sent for asset request:', id)
+  } catch (emailError) {
+    console.error('⚠️ Failed to send rejection email:', emailError)
+    // Don't fail the entire operation if email fails
+  }
+
+  return updatedRequest
 }
 
 export const AssetRequest = {

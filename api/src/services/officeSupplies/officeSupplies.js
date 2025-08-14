@@ -1,5 +1,5 @@
 import { db } from 'src/lib/db'
-import { ForbiddenError, ValidationError } from '@redwoodjs/graphql-server'
+import { ForbiddenError, ValidationError, UserInputError } from '@redwoodjs/graphql-server'
 import { requireAuth } from 'src/lib/auth'
 import { context } from '@redwoodjs/graphql-server'
 
@@ -62,13 +62,24 @@ export const updateOfficeSupply = ({ id, input }) => {
   })
 }
 
-export const deleteOfficeSupply = ({ id }) => {
-  requireAuth()
+export const deleteOfficeSupply = async ({ id }, { context }) => {
+  requireAuth({}, context)
   
   // Check if user is admin
   const isAdmin = context.currentUser.roles?.includes('ADMIN')
   if (!isAdmin) {
     throw new ForbiddenError('Only administrators can delete office supplies')
+  }
+  
+  // Check if there are any supply requests for this office supply
+  const existingRequests = await db.supplyRequest.findMany({
+    where: { supplyId: id }
+  })
+  
+  if (existingRequests.length > 0) {
+    throw new UserInputError(
+      `Cannot delete this office supply because it has ${existingRequests.length} existing supply request(s). Please handle or delete the related requests first.`
+    )
   }
   
   return db.officeSupply.delete({
