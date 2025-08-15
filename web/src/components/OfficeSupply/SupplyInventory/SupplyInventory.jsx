@@ -119,21 +119,11 @@ const SupplyInventory = () => {
     }
   }
 
-  const handleFormSave = (formData) => {
-    if (editingSupply) {
-      updateSupply({ 
-        variables: { 
-          id: editingSupply.id, 
-          input: formData 
-        } 
-      })
-    } else {
-      createSupply({ 
-        variables: { 
-          input: formData 
-        } 
-      })
-    }
+  // Replace double-mutation: the form performs create/update itself and calls onSave afterwards.
+  const handleFormSave = () => {
+    refetch()
+    setEditingSupply(null)
+    setShowForm(false)
   }
 
   const filteredSupplies = data?.officeSupplies?.filter(supply => {
