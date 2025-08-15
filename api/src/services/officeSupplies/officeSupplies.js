@@ -28,17 +28,35 @@ export const createOfficeSupply = ({ input }) => {
   if (!isAdmin) {
     throw new ForbiddenError('Only administrators can create office supplies')
   }
+
+  // Validate required fields
+  if (!input.categoryId) {
+    throw new ValidationError('Category ID is required')
+  }
   
-  // Validate minimum stock and reorder level
-  if (input.reorderLevel && input.minimumStock && input.reorderLevel < input.minimumStock) {
-    throw new ValidationError('Reorder level cannot be less than minimum stock')
+  if (!input.name || input.name.trim() === '') {
+    throw new ValidationError('Name is required')
+  }
+  
+  if (input.stockCount === null || input.stockCount === undefined) {
+    throw new ValidationError('Stock count is required')
+  }
+  
+  if (input.unitPrice === null || input.unitPrice === undefined) {
+    throw new ValidationError('Unit price is required')
+  }
+
+  // Clean the input to remove any unwanted fields
+  const cleanInput = {
+    name: input.name,
+    description: input.description || null,
+    stockCount: input.stockCount,
+    unitPrice: input.unitPrice,
+    categoryId: input.categoryId,
   }
 
   return db.officeSupply.create({
-    data: {
-      ...input,
-      currentStock: input.currentStock || 0,
-    },
+    data: cleanInput,
   })
 }
 
@@ -50,14 +68,17 @@ export const updateOfficeSupply = ({ id, input }) => {
   if (!isAdmin) {
     throw new ForbiddenError('Only administrators can update office supplies')
   }
-  
-  // Validate minimum stock and reorder level
-  if (input.reorderLevel && input.minimumStock && input.reorderLevel < input.minimumStock) {
-    throw new ValidationError('Reorder level cannot be less than minimum stock')
-  }
+
+  // Clean the input to remove any unwanted fields
+  const cleanInput = {}
+  if (input.name !== undefined) cleanInput.name = input.name
+  if (input.description !== undefined) cleanInput.description = input.description
+  if (input.stockCount !== undefined) cleanInput.stockCount = input.stockCount
+  if (input.unitPrice !== undefined) cleanInput.unitPrice = input.unitPrice
+  if (input.categoryId !== undefined) cleanInput.categoryId = input.categoryId
 
   return db.officeSupply.update({
-    data: input,
+    data: cleanInput,
     where: { id },
   })
 }
@@ -107,10 +128,10 @@ export const updateStockLevel = ({ id, quantity, operation }) => {
     let newStock
     switch (operation) {
       case 'ADD':
-        newStock = supply.currentStock + quantity
+        newStock = supply.stockCount + quantity
         break
       case 'SUBTRACT':
-        newStock = Math.max(0, supply.currentStock - quantity)
+        newStock = Math.max(0, supply.stockCount - quantity)
         break
       case 'SET':
         newStock = quantity
@@ -122,26 +143,17 @@ export const updateStockLevel = ({ id, quantity, operation }) => {
     return tx.officeSupply.update({
       where: { id },
       data: { 
-        currentStock: newStock,
-        lastUpdated: new Date(),
+        stockCount: newStock,
       },
     })
   })
 }
 
-// Get low stock supplies
+// Get low stock supplies (supplies with stock count <= 10)
 export const lowStockSupplies = () => {
   return db.officeSupply.findMany({
     where: {
-      OR: [
-        { currentStock: { lte: db.officeSupply.fields.minimumStock } },
-        { 
-          AND: [
-            { reorderLevel: { not: null } },
-            { currentStock: { lte: db.officeSupply.fields.reorderLevel } }
-          ]
-        }
-      ]
+      stockCount: { lte: 10 }
     },
     include: {
       category: true,
@@ -156,19 +168,15 @@ export const OfficeSupply = {
       .category()
   },
   
-  // Calculate if supply is low stock
+  // Calculate if supply is low stock (stockCount <= 10)
   isLowStock: (obj) => {
-    if (obj.reorderLevel) {
-      return obj.currentStock <= obj.reorderLevel
-    }
-    return obj.currentStock <= obj.minimumStock
+    return obj.stockCount <= 10
   },
   
   // Calculate stock status
   stockStatus: (obj) => {
-    if (obj.currentStock === 0) return 'OUT_OF_STOCK'
-    if (obj.reorderLevel && obj.currentStock <= obj.reorderLevel) return 'LOW_STOCK'
-    if (obj.currentStock <= obj.minimumStock) return 'LOW_STOCK'
+    if (obj.stockCount === 0) return 'OUT_OF_STOCK'
+    if (obj.stockCount <= 10) return 'LOW_STOCK'
     return 'IN_STOCK'
   },
 }
