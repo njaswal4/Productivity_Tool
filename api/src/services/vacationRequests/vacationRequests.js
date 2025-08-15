@@ -36,6 +36,10 @@ export const userVacationRequests = (_args, { context }) => {
   return db.vacationRequest.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
+    include: {
+      originalRequest: true,
+      resubmissions: true,
+    }
   })
 }
 
@@ -105,9 +109,12 @@ export const approveVacationRequest = async ({ id }) => {
   return updatedRequest
 }
 
-export const rejectVacationRequest = async ({ id }) => {
+export const rejectVacationRequest = async ({ id, input }) => {
   const updatedRequest = await db.vacationRequest.update({
-    data: { status: 'Rejected' },
+    data: { 
+      status: 'Rejected',
+      rejectionReason: input.rejectionReason
+    },
     where: { id },
     include: { user: true },
   })
@@ -122,6 +129,52 @@ export const rejectVacationRequest = async ({ id }) => {
   }
 
   return updatedRequest
+}
+
+export const resubmitVacationRequest = async ({ originalId, input }, { context }) => {
+  return db.$transaction(async (tx) => {
+    const userId = context.currentUser.id
+    
+    // Verify the original request belongs to the current user and was rejected
+    const originalRequest = await tx.vacationRequest.findUnique({
+      where: { id: originalId },
+      include: { user: true }
+    })
+    
+    if (!originalRequest) {
+      throw new Error('Original vacation request not found')
+    }
+    
+    if (originalRequest.userId !== userId) {
+      throw new Error('You can only resubmit your own vacation requests')
+    }
+    
+    if (originalRequest.status !== 'Rejected') {
+      throw new Error('You can only resubmit rejected vacation requests')
+    }
+    
+    // Create the new resubmission request
+    const newRequest = await tx.vacationRequest.create({
+      data: {
+        ...input,
+        userId,
+        originalRequestId: originalId,
+        status: 'Pending'
+      },
+      include: {
+        user: true,
+        originalRequest: true
+      }
+    })
+
+    // Send notification to admins about the resubmission
+    sendVacationRequestNotificationToAdmins(newRequest.user, newRequest)
+      .catch(error => {
+        console.error('Failed to send admin notification for vacation resubmission:', error)
+      })
+
+    return newRequest
+  })
 }
 
 // Example: Make sure the delete service returns all fields needed by the cache

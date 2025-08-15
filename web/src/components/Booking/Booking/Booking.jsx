@@ -22,6 +22,7 @@ const BOOKINGS_QUERY = gql`
       id
       startTime
       endTime
+      meetingRoomId
     }
   }
 `
@@ -81,13 +82,18 @@ export const BookingForm = ({ refetchBookings }) => {
     return slotEnd <= now
   }
 
-  // Check if slot overlaps with any existing booking
+  // Check if slot overlaps with any existing booking for the SAME meeting room
   const isSlotBooked = (slot) => {
-    if (!bookingsData || !bookingsData.bookings) return false
+    if (!bookingsData || !bookingsData.bookings || !selectRoomId) return false
     const slotStart = parseSlotTime(selectedDate, slot.start)
     const slotEnd = parseSlotTime(selectedDate, slot.end)
 
     return bookingsData.bookings.some((booking) => {
+      // Only check bookings for the same meeting room
+      if (booking.meetingRoomId !== Number(selectRoomId)) {
+        return false
+      }
+      
       const bookingStart = new Date(booking.startTime)
       const bookingEnd = new Date(booking.endTime)
       // Check if slot overlaps with booking

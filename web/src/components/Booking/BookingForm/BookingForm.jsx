@@ -9,6 +9,7 @@ import {
   Submit,
   Select,
 } from '@redwoodjs/forms'
+import { useState, useEffect } from 'react'
 import { FaRegCalendarAlt, FaRegClock } from 'react-icons/fa'
 import { useQuery } from '@redwoodjs/web'
 
@@ -27,12 +28,61 @@ const GET_MEETING_ROOMS = gql`
   }
 `
 
+const CHECK_AVAILABILITY = gql`
+  query CheckAvailability($meetingRoomId: Int!, $date: String!) {
+    checkAvailability(meetingRoomId: $meetingRoomId, date: $date) {
+      meetingRoomId
+      date
+      bookedSlots {
+        id
+        startTime
+        endTime
+        user {
+          name
+          email
+        }
+      }
+    }
+  }
+`
+
 const BookingForm = (props) => {
   const { data, loading, error } = useQuery(GET_MEETING_ROOMS)
+  const [selectedRoomId, setSelectedRoomId] = useState(props?.booking?.meetingRoomId || '')
+  const [selectedDate, setSelectedDate] = useState('')
+
+  const { data: availabilityData, loading: availabilityLoading } = useQuery(
+    CHECK_AVAILABILITY,
+    {
+      variables: { 
+        meetingRoomId: parseInt(selectedRoomId), 
+        date: selectedDate 
+      },
+      skip: !selectedRoomId || !selectedDate
+    }
+  )
+
+  useEffect(() => {
+    // Set default date to today if not editing
+    if (!props?.booking && !selectedDate) {
+      const today = new Date().toISOString().split('T')[0]
+      setSelectedDate(today)
+    }
+  }, [props?.booking, selectedDate])
 
   const onSubmit = (data) => {
     props.onSave(data, props?.booking?.id)
   }
+
+  const formatTime = (dateTime) => {
+    return new Date(dateTime).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+
+  const bookedSlots = availabilityData?.checkAvailability?.bookedSlots || []
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-gray-100 px-6 py-16">
@@ -171,6 +221,7 @@ const BookingForm = (props) => {
               errorClassName="rw-input rw-input-error"
               validation={{ required: true }}
               disabled={loading}
+              onChange={(e) => setSelectedRoomId(e.target.value)}
             >
               <option value="">Select a meeting room</option>
               {data?.meetingRooms.map((room) => (
@@ -183,16 +234,76 @@ const BookingForm = (props) => {
               name="meetingRoomId"
               className="rw-field-error text-red-500 mt-1"
             />
+
+            {/* Date Selection for Availability */}
+            <Label
+              name="bookingDate"
+              className="rw-label text-gray-700 font-semibold mt-4 mb-2"
+              errorClassName="rw-label rw-label-error"
+            >
+              Select Date to Check Availability
+            </Label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="rw-input w-full rounded-lg border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500"
+              min={new Date().toISOString().split('T')[0]}
+            />
+
+            {/* Availability Display */}
+            {selectedRoomId && selectedDate && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold text-gray-700 mb-2">
+                  Room Availability for {selectedDate}
+                </h3>
+                {availabilityLoading ? (
+                  <p className="text-gray-500">Checking availability...</p>
+                ) : bookedSlots.length === 0 ? (
+                  <p className="text-green-600 font-medium">✅ This room is available all day!</p>
+                ) : (
+                  <div>
+                    <p className="text-amber-600 font-medium mb-2">⚠️ Already booked times:</p>
+                    <div className="space-y-2">
+                      {bookedSlots.map((slot) => (
+                        <div key={slot.id} className="bg-red-50 border border-red-200 rounded p-2">
+                          <div className="text-sm font-medium text-red-800">
+                            {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                          </div>
+                          <div className="text-xs text-red-600">
+                            Booked by: {slot.user.name} ({slot.user.email})
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      💡 Choose a different time slot to avoid conflicts
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="col-span-2 flex justify-center mt-8">
             <Submit
               disabled={props.loading}
-              className="rw-button rw-button-blue px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition"
+              className="rw-button rw-button-blue px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition disabled:opacity-50"
             >
-              Save
+              {props.loading ? 'Saving...' : 'Save Booking'}
             </Submit>
           </div>
+
+          {props.error && (
+            <div className="col-span-2 mt-4">
+              <FormError
+                error={props.error}
+                wrapperClassName="rw-form-error-wrapper"
+                titleClassName="rw-form-error-title"
+                listClassName="rw-form-error-list"
+              />
+            </div>
+          )}
         </Form>
       </div>
     </div>

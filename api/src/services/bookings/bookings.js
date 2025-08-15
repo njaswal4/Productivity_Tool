@@ -41,21 +41,47 @@ export const booking = ({ id }) => {
 }
 
 export const createBooking = async ({ input }) => {
+  // Check for overlapping bookings in the SAME meeting room only
   const overlap = await db.booking.findFirst({
     where: {
+      meetingRoomId: input.meetingRoomId,  // Only check the same meeting room
       startTime: { lt: input.endTime },
       endTime: { gt: input.startTime },
     },
   })
 
   if (overlap) {
-    throw new Error('Time slot already booked.')
+    throw new Error(`This meeting room is already booked during this time. Please select a different time or meeting room.`)
   }
 
   return db.booking.create({ data: input })
 }
 
-export const updateBooking = ({ id, input }) => {
+export const updateBooking = async ({ id, input }) => {
+  // If updating time or meeting room, check for conflicts
+  if (input.startTime || input.endTime || input.meetingRoomId) {
+    // Get the current booking to know which fields to check
+    const currentBooking = await db.booking.findUnique({ where: { id } })
+    
+    const startTime = input.startTime || currentBooking.startTime
+    const endTime = input.endTime || currentBooking.endTime
+    const meetingRoomId = input.meetingRoomId || currentBooking.meetingRoomId
+    
+    // Check for overlapping bookings in the same meeting room, excluding the current booking
+    const overlap = await db.booking.findFirst({
+      where: {
+        id: { not: id }, // Exclude the current booking
+        meetingRoomId: meetingRoomId,
+        startTime: { lt: endTime },
+        endTime: { gt: startTime },
+      },
+    })
+
+    if (overlap) {
+      throw new Error(`This meeting room is already booked during this time. Please select a different time or meeting room.`)
+    }
+  }
+
   return db.booking.update({
     data: input,
     where: { id },

@@ -4,6 +4,7 @@ import { toast, Toaster } from '@redwoodjs/web/toast'
 import { Calendar, momentLocalizer } from 'react-big-calendar'
 import moment from 'moment'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
+import FormModal from 'src/components/FormModal/FormModal'
 
 // Initialize the calendar localizer
 const localizer = momentLocalizer(moment)
@@ -16,11 +17,21 @@ const ADMIN_VACATION_REQUESTS = gql`
       endDate
       reason
       status
+      rejectionReason
+      originalRequestId
       createdAt
       user {
         id
         name
         email
+      }
+      originalRequest {
+        id
+        startDate
+        endDate
+        reason
+        status
+        rejectionReason
       }
     }
   }
@@ -36,10 +47,11 @@ const APPROVE_VACATION_REQUEST = gql`
 `
 
 const REJECT_VACATION_REQUEST = gql`
-  mutation RejectVacationRequest($id: Int!) {
-    rejectVacationRequest(id: $id) {
+  mutation RejectVacationRequest($id: Int!, $input: RejectVacationRequestInput!) {
+    rejectVacationRequest(id: $id, input: $input) {
       id
       status
+      rejectionReason
     }
   }
 `
@@ -50,6 +62,9 @@ const AdminVacationManager = () => {
   const [statusFilter, setStatusFilter] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState('list')
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [rejectRequestId, setRejectRequestId] = useState(null)
+  const [rejectionReason, setRejectionReason] = useState('')
   const today = new Date()
 
   const { data, loading, error, refetch } = useQuery(ADMIN_VACATION_REQUESTS)
@@ -114,7 +129,7 @@ const AdminVacationManager = () => {
             data: {
               vacationRequests: vacationRequests.map((req) =>
                 req.id === rejectVacationRequest.id
-                  ? { ...req, status: 'Rejected' }
+                  ? { ...req, status: 'Rejected', rejectionReason: rejectVacationRequest.rejectionReason }
                   : req
               ),
             },
@@ -131,7 +146,29 @@ const AdminVacationManager = () => {
   }
 
   const handleReject = (id) => {
-    rejectVacationRequest({ variables: { id } })
+    setRejectRequestId(id)
+    setRejectionReason('')
+    setShowRejectModal(true)
+  }
+
+  const handleConfirmReject = () => {
+    if (!rejectionReason.trim()) {
+      toast.error('Please provide a rejection reason')
+      return
+    }
+    
+    rejectVacationRequest({ 
+      variables: { 
+        id: rejectRequestId,
+        input: {
+          rejectionReason: rejectionReason.trim()
+        }
+      } 
+    })
+    
+    setShowRejectModal(false)
+    setRejectRequestId(null)
+    setRejectionReason('')
   }
 
   const allRequests = data?.vacationRequests || []
@@ -671,6 +708,53 @@ const AdminVacationManager = () => {
             </button>
           </nav>
         </div>
+      )}
+      
+      {/* Rejection Modal */}
+      {showRejectModal && (
+        <FormModal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)}>
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Reject Vacation Request
+              </h3>
+              <p className="text-sm text-gray-600">
+                Please provide a reason for rejecting this vacation request.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rejection Reason *
+              </label>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                rows={4}
+                placeholder="Please provide a detailed reason for the rejection..."
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowRejectModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReject}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                Reject Request
+              </button>
+            </div>
+          </div>
+        </FormModal>
       )}
     </div>
   )

@@ -7,6 +7,10 @@ export const schema = gql`
     endDate: DateTime!
     reason: String!
     status: String!
+    rejectionReason: String
+    originalRequestId: Int
+    originalRequest: VacationRequest
+    resubmissions: [VacationRequest!]!
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -21,6 +25,7 @@ export const schema = gql`
     startDate: DateTime!
     endDate: DateTime!
     reason: String!
+    originalRequestId: Int
   }
 
   input UpdateVacationRequestInput {
@@ -28,13 +33,19 @@ export const schema = gql`
     endDate: DateTime
     reason: String
     status: String
+    rejectionReason: String
+  }
+
+  input RejectVacationRequestInput {
+    rejectionReason: String!
   }
 
   type Mutation {
     createVacationRequest(input: CreateVacationRequestInput!): VacationRequest! @requireAuth
     updateVacationRequest(id: Int!, input: UpdateVacationRequestInput!): VacationRequest! @requireAuth
     approveVacationRequest(id: Int!): VacationRequest! @requireAuth(roles: ["ADMIN"])
-    rejectVacationRequest(id: Int!): VacationRequest! @requireAuth(roles: ["ADMIN"])
+    rejectVacationRequest(id: Int!, input: RejectVacationRequestInput!): VacationRequest! @requireAuth(roles: ["ADMIN"])
     deleteVacationRequest(id: Int!): VacationRequest! @requireAuth
+    resubmitVacationRequest(originalId: Int!, input: CreateVacationRequestInput!): VacationRequest! @requireAuth
   }
 `
